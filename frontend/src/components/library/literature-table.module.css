@@ -1,0 +1,47 @@
+.container {
+  padding: 24px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.55);
+  display: grid;
+  gap: 16px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+th {
+  color: rgba(148, 163, 184, 0.8);
+  font-weight: 600;
+}
+
+td {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.placeholder {
+  text-align: center;
+  padding: 36px 0;
+  color: rgba(148, 163, 184, 0.8);
+}

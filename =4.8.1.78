@@ -1,0 +1,28 @@
+Requirement already satisfied: opencv-python in ./.venv/lib/python3.12/site-packages (4.6.0.66)
+Collecting opencv-python
+  Downloading opencv_python-4.12.0.88-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (19 kB)
+Requirement already satisfied: opencv-contrib-python in ./.venv/lib/python3.12/site-packages (4.6.0.66)
+Collecting opencv-contrib-python
+  Downloading opencv_contrib_python-4.12.0.88-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (19 kB)
+Collecting numpy<2.3.0,>=2 (from opencv-python)
+  Using cached numpy-2.2.6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (62 kB)
+Downloading opencv_python-4.12.0.88-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (67.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 67.0/67.0 MB 47.7 MB/s  0:00:01
+Using cached numpy-2.2.6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.5 MB)
+Downloading opencv_contrib_python-4.12.0.88-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (73.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 73.2/73.2 MB 53.0 MB/s  0:00:01
+Installing collected packages: numpy, opencv-python, opencv-contrib-python
+  Attempting uninstall: numpy
+    Found existing installation: numpy 1.26.4
+    Uninstalling numpy-1.26.4:
+      Successfully uninstalled numpy-1.26.4
+  Attempting uninstall: opencv-python
+    Found existing installation: opencv-python 4.6.0.66
+    Uninstalling opencv-python-4.6.0.66:
+      Successfully uninstalled opencv-python-4.6.0.66
+  Attempting uninstall: opencv-contrib-python
+    Found existing installation: opencv-contrib-python 4.6.0.66
+    Uninstalling opencv-contrib-python-4.6.0.66:
+      Successfully uninstalled opencv-contrib-python-4.6.0.66
+
+Successfully installed numpy-2.2.6 opencv-contrib-python-4.12.0.88 opencv-python-4.12.0.88

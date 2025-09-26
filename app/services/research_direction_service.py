@@ -778,7 +778,7 @@ class ResearchDirectionService:
                 "keywords": research_direction.get("keywords", []),
                 "research_categories": research_direction.get("research_categories", []),
                 "owner_id": user.id,
-                "literature_sources": ["semantic_scholar", "pubmed", "google_scholar"],
+                "literature_sources": ["researchrabbit"],
                 "max_literature_count": 1000,  # 根据用户会员级别调整
                 "status": "planning"
             }
@@ -808,7 +808,7 @@ class ResearchDirectionService:
                 "keywords": keywords,
                 "estimated_counts": estimated_counts,
                 "total_estimated": min(total_estimated, 5000),  # 限制最大值
-                "recommended_sources": ["semantic_scholar", "pubmed", "google_scholar"],
+                "recommended_sources": ["researchrabbit"],
                 "collection_strategy": "parallel_collection_with_ai_screening"
             }
             

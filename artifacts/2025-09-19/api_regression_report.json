@@ -1,0 +1,113 @@
+{
+  "base_url": "http://154.12.50.153:8000",
+  "results": [
+    {
+      "name": "root",
+      "method": "GET",
+      "path": "/",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59cb90>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "openapi",
+      "method": "GET",
+      "path": "/openapi.json",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /openapi.json (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59ce60>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "docs",
+      "method": "GET",
+      "path": "/api/docs",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /api/docs (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59d1c0>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "health",
+      "method": "GET",
+      "path": "/health",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59d6a0>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "healthz",
+      "method": "GET",
+      "path": "/healthz",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /healthz (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59d9a0>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "readyz",
+      "method": "GET",
+      "path": "/readyz",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /readyz (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c776c90>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "live",
+      "method": "GET",
+      "path": "/live",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /live (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59d670>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "status",
+      "method": "GET",
+      "path": "/status",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /status (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59ce30>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "info",
+      "method": "GET",
+      "path": "/info",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /info (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59dca0>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    },
+    {
+      "name": "auth_login",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": "ERROR",
+      "status_code": null,
+      "elapsed_ms": null,
+      "detail": "HTTPConnectionPool(host='154.12.50.153', port=8000): Max retries exceeded with url: /api/auth/login (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x77f75c59e090>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "response_excerpt": null
+    }
+  ],
+  "summary": {
+    "PASS": 0,
+    "WARN": 0,
+    "FAIL": 0,
+    "ERROR": 10,
+    "SKIP": 0
+  },
+  "generated_at": 1758283569
+}

@@ -370,7 +370,7 @@ async def batch_process(
         # 验证项目权限
         project = db.query(Project).filter(
             Project.id == project_id,
-            Project.user_id == current_user.id
+            Project.owner_id == current_user.id
         ).first()
 
         if not project:

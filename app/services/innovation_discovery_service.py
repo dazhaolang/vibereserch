@@ -340,12 +340,12 @@ class InnovationDiscoveryService:
             for exp in main_experiences:
                 research_data["main_experiences"].append({
                     "id": exp.id,
-                    "experience_type": exp.experience_type,
+                    "experience_type": exp.experience_type or "未分类经验",
                     "content": exp.content,
-                    "methodology_summary": exp.methodology_summary,
-                    "key_findings": exp.key_findings,
-                    "practical_guidelines": exp.practical_guidelines,
-                    "quality_score": exp.quality_score
+                    "methodology_summary": exp.methodology_summary or {},
+                    "key_findings": exp.key_findings or [],
+                    "practical_guidelines": exp.practical_guidelines or [],
+                    "quality_score": exp.quality_score or 0.0,
                 })
             
             # 收集文献段落

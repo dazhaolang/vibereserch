@@ -1,5 +1,4 @@
 services:
-  # MySQL数据库
   mysql:
     image: mysql:8.0
     environment:
@@ -7,110 +6,116 @@ services:
       MYSQL_DATABASE: research_platform
       MYSQL_USER: raggar
       MYSQL_PASSWORD: raggar123
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./mysql/conf.d:/etc/mysql/conf.d
-    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
-  # Elasticsearch搜索引擎
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
     ports:
       - "9200:9200"
-      - "9300:9300"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
     networks:
       - app-network
 
-  # Kibana (可选，用于ES数据可视化)
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.10.0
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
-    networks:
-      - app-network
-
-  # Redis缓存
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    networks:
-      - app-network
-
-  # 后端API服务
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: mysql://raggar:raggar123@mysql:3306/research_platform
+      REDIS_URL: redis://redis:6379/0
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=mysql://raggar:raggar123@mysql:3306/research_platform
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - REDIS_URL=redis://redis:6379
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - SEMANTIC_SCHOLAR_API_KEY=${SEMANTIC_SCHOLAR_API_KEY}
-    depends_on:
-      - mysql
-      - elasticsearch
-      - redis
     volumes:
-      - ./backend:/app
-      - uploaded_files:/app/uploads
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
-  # Celery后台任务处理
   celery:
-    build: ./backend
-    command: celery -A app.celery worker --loglevel=info
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=mysql://raggar:raggar123@mysql:3306/research_platform
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - REDIS_URL=redis://redis:6379
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      DATABASE_URL: mysql://raggar:raggar123@mysql:3306/research_platform
+      REDIS_URL: redis://redis:6379/0
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      RUN_MIGRATIONS: "0"
     depends_on:
-      - mysql
-      - elasticsearch
-      - redis
-    volumes:
-      - ./backend:/app
-      - uploaded_files:/app/uploads
+      backend:
+        condition: service_healthy
+    command: ["celery", "-A", "app.celery", "worker", "--loglevel=info"]
     networks:
       - app-network
 
-  # 前端服务
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+        VITE_WS_URL: /ws/global
+    depends_on:
+      backend:
+        condition: service_healthy
     ports:
       - "3000:3000"
-    environment:
-      - REACT_APP_API_URL=http://localhost:8000
-    depends_on:
-      - backend
     networks:
       - app-network
 
 volumes:
   mysql_data:
   elasticsearch_data:
-  uploaded_files:
+  uploads_data:
 
 networks:
   app-network:

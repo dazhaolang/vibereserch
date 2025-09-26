@@ -1,0 +1,146 @@
+.wrapper {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  height: 100%;
+  min-height: calc(100vh - 48px);
+  width: 100%;
+  background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 55%), #0f172a;
+  color: #e2e8f0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 28px 20px;
+  background: rgba(15, 23, 42, 0.85);
+  border-right: 1px solid rgba(148, 163, 184, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.sidebarHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.brand {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.librarySwitcher {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.librarySwitcher > span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: transparent;
+  text-decoration: none;
+  color: rgba(203, 213, 225, 0.8);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.navItem:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #f8fafc;
+}
+
+.activeNav {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #f8fafc;
+}
+
+.navIcon {
+  font-size: 1.1rem;
+}
+
+.navLabel {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.sidebarFooter {
+  font-size: 0.75rem;
+  color: rgba(148, 163, 184, 0.65);
+}
+
+.mainArea {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 24px 32px 24px;
+  gap: 20px;
+}
+
+.modeBar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  height: calc(100vh - 160px);
+  min-height: 0;
+}
+
+.bodyFull {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.conversation {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 18px;
+  padding: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.contextPanel {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 18px;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1280px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contextPanel {
+    display: none;
+  }
+}

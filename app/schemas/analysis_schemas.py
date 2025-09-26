@@ -25,11 +25,22 @@ class ExperienceBooksResponse(BaseModel):
 class MainExperienceItem(BaseModel):
     """主经验项"""
     id: int
+    experience_type: Optional[str] = None
+    research_domain: Optional[str] = None
     title: str
     content: str
     version: str
     iteration_round: int
     confidence_score: float
+    quality_score: Optional[float] = None
+    completeness_score: Optional[float] = None
+    accuracy_score: Optional[float] = None
+    usefulness_score: Optional[float] = None
+    literature_count: int
+    source_literature_count: Optional[int] = None
+    status: str
+    key_findings: Optional[List[str]] = None
+    practical_guidelines: Optional[List[str]] = None
     source_books: List[Dict[str, Any]]
     created_at: str
     updated_at: Optional[str] = None

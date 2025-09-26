@@ -2,9 +2,21 @@
 项目相关数据模型 - MySQL版本
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON, ForeignKey, Table, TIMESTAMP
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Boolean,
+    Text,
+    JSON,
+    ForeignKey,
+    Table,
+    TIMESTAMP,
+    literal,
+)
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, column_property
 from app.core.database import Base
 
 # 项目文献关联表
@@ -41,6 +53,8 @@ class Project(Base):
     # 轻结构化配置
     structure_template = Column(JSON)  # 轻结构化模板
     extraction_prompts = Column(JSON)  # 提取提示词
+    # 一些历史数据库缺少 metadata 列，使用虚拟属性保持兼容
+    extra_metadata = column_property(literal(None))
 
     # 用户关联
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
@@ -54,6 +68,12 @@ class Project(Base):
     # 关系
     owner = relationship("User", back_populates="projects")
     literature = relationship("Literature", secondary=project_literature_association, back_populates="projects")
+    primary_literature = relationship(
+        "Literature",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        primaryjoin="Project.id==Literature.project_id"
+    )
     literature_references = relationship("UserLiteratureReference", secondary="user_literature_reference_associations", back_populates="projects")
     tasks = relationship("Task", back_populates="project")
     experience_books = relationship("ExperienceBook", back_populates="project")

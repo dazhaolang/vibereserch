@@ -50,7 +50,7 @@ async def start_intelligent_interaction(
         # 验证项目权限
         project = db.query(Project).filter(
             Project.id == request.project_id,
-            Project.user_id == current_user.id
+            Project.owner_id == current_user.id
         ).first()
 
         if not project:

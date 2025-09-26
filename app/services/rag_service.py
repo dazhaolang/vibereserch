@@ -1,350 +1,174 @@
 """
-RAG检索增强生成服务
+RAG检索增强生成服务 - 使用Elasticsearch进行语义/关键词混合检索
 """
 
-from typing import List, Dict, Optional, Tuple
-import asyncio
-import numpy as np
+from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-import openai
-from openai import AsyncOpenAI
 from loguru import logger
 
 from app.core.config import settings
 from app.models.literature import LiteratureSegment, Literature
 from app.models.experience import MainExperience
+from app.services.enhanced_search_service import get_enhanced_search_service
+from app.services.data_sync_service import DataSyncService
+from openai import AsyncOpenAI
+
 
 class RAGService:
-    """RAG检索服务"""
-    
+    """基于Elasticsearch的RAG检索服务"""
+
     def __init__(self, db: Session):
         self.db = db
         self.client = AsyncOpenAI(api_key=settings.openai_api_key)
-        
+        self._search_service = None
+
     async def search_relevant_segments(
         self,
         query: str,
         project_id: int,
         top_k: int = 10,
-        similarity_threshold: float = 0.7
+        similarity_threshold: float = 0.25
     ) -> List[Dict]:
-        """
-        搜索相关文献段落
-        
-        Args:
-            query: 查询文本
-            project_id: 项目ID
-            top_k: 返回数量
-            similarity_threshold: 相似度阈值
-            
-        Returns:
-            相关段落列表
-        """
+        """从Elasticsearch中检索相关文献段落"""
         try:
-            # 生成查询向量
-            query_embedding = await self._get_text_embedding(query)
-            
-            if not query_embedding:
-                return []
-            
-            # 向量相似度搜索
-            vector_results = await self._vector_similarity_search(
-                query_embedding, project_id, top_k * 2
+            search_service = await self._get_search_service()
+
+            search_response = await search_service.hybrid_search(
+                query=query,
+                project_id=project_id,
+                top_k=top_k * 2  # 额外检索用于后续筛选
             )
-            
-            # 关键词匹配搜索
-            keyword_results = await self._keyword_search(query, project_id, top_k)
-            
-            # 合并和重排序结果
-            combined_results = self._combine_and_rerank_results(
-                vector_results, keyword_results, query, top_k
-            )
-            
-            # 过滤低相似度结果
-            filtered_results = [
-                result for result in combined_results 
-                if result.get("similarity_score", 0) >= similarity_threshold
+
+            segments = self._format_es_results(search_response)
+
+            # 如果结果为空，尝试同步项目段落到Elasticsearch后重试一次
+            if not segments:
+                await self._sync_project_segments(project_id)
+                search_response = await search_service.hybrid_search(
+                    query=query,
+                    project_id=project_id,
+                    top_k=top_k * 2
+                )
+                segments = self._format_es_results(search_response)
+
+            # 过滤低分结果并限制返回数量
+            filtered_segments = [
+                segment for segment in segments
+                if segment.get("similarity_score", 0) >= similarity_threshold
             ]
-            
-            return filtered_results[:top_k]
-            
+
+            return filtered_segments[:top_k]
+
         except Exception as e:
             logger.error(f"RAG搜索失败: {e}")
             return []
-    
+
+    async def _get_search_service(self):
+        if self._search_service is None:
+            self._search_service = await get_enhanced_search_service()
+        return self._search_service
+
+    async def _sync_project_segments(self, project_id: int, limit: int = 200):
+        """将项目相关的文献段落同步到Elasticsearch"""
+        try:
+            data_sync = DataSyncService()
+            await data_sync.init_elasticsearch()
+
+            segments = (
+                self.db.query(LiteratureSegment)
+                .join(Literature)
+                .filter(Literature.projects.any(id=project_id))
+                .limit(limit)
+                .all()
+            )
+
+            for segment in segments:
+                await data_sync.sync_literature_segment_to_es(segment.id, self.db)
+
+        except Exception as e:
+            logger.error(f"同步项目段落到Elasticsearch失败: {e}")
+
+    def _format_es_results(self, search_response: Dict[str, any]) -> List[Dict]:
+        """将Elasticsearch返回结果转换为RAG所需格式"""
+        results = []
+        for item in search_response.get("results", []):
+            results.append({
+                "id": item.get("segment_id"),
+                "content": item.get("content"),
+                "segment_type": item.get("section_title"),
+                "section_title": item.get("section_title"),
+                "structured_data": item.get("structured_data", {}),
+                "extraction_confidence": item.get("extraction_confidence", 0.0),
+                "literature_title": item.get("literature_title"),
+                "authors": item.get("literature_authors", []),
+                "publication_year": item.get("publication_year"),
+                "similarity_score": item.get("score", 0.0),
+                "search_type": search_response.get("search_type", "hybrid")
+            })
+        return results
+
     async def _get_text_embedding(self, text: str) -> Optional[List[float]]:
-        """获取文本向量嵌入"""
+        """保持与现有接口兼容的嵌入生成方法"""
         try:
             response = await self.client.embeddings.create(
                 model=settings.openai_embedding_model,
                 input=text
             )
-            
             return response.data[0].embedding
-            
         except Exception as e:
             logger.error(f"获取文本嵌入失败: {e}")
             return None
-    
-    async def _vector_similarity_search(
-        self,
-        query_embedding: List[float],
-        project_id: int,
-        limit: int
-    ) -> List[Dict]:
-        """向量相似度搜索"""
-        try:
-            # 构建向量搜索SQL
-            embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
-            
-            sql = text("""
-                SELECT 
-                    ls.id,
-                    ls.content,
-                    ls.segment_type,
-                    ls.section_title,
-                    ls.structured_data,
-                    ls.extraction_confidence,
-                    l.title as literature_title,
-                    l.authors,
-                    l.publication_year,
-                    (ls.content_embedding <=> :query_embedding::vector) as similarity_score
-                FROM literature_segments ls
-                JOIN literature l ON ls.literature_id = l.id
-                JOIN project_literature_associations pla ON l.id = pla.literature_id
-                WHERE pla.project_id = :project_id 
-                    AND ls.content_embedding IS NOT NULL
-                ORDER BY ls.content_embedding <=> :query_embedding::vector
-                LIMIT :limit
-            """)
-            
-            result = self.db.execute(sql, {
-                "query_embedding": embedding_str,
-                "project_id": project_id,
-                "limit": limit
-            })
-            
-            segments = []
-            for row in result:
-                segments.append({
-                    "id": row.id,
-                    "content": row.content,
-                    "segment_type": row.segment_type,
-                    "section_title": row.section_title,
-                    "structured_data": row.structured_data,
-                    "extraction_confidence": row.extraction_confidence,
-                    "literature_title": row.literature_title,
-                    "authors": row.authors,
-                    "publication_year": row.publication_year,
-                    "similarity_score": 1 - row.similarity_score,  # 转换为相似度
-                    "search_type": "vector"
-                })
-            
-            return segments
-            
-        except Exception as e:
-            logger.error(f"向量搜索失败: {e}")
-            return []
-    
-    async def _keyword_search(
-        self,
-        query: str,
-        project_id: int,
-        limit: int
-    ) -> List[Dict]:
-        """关键词搜索"""
-        try:
-            # 提取查询关键词
-            query_lower = query.lower()
-            keywords = query_lower.split()
-            
-            # 构建关键词搜索SQL
-            sql = text("""
-                SELECT 
-                    ls.id,
-                    ls.content,
-                    ls.segment_type,
-                    ls.section_title,
-                    ls.structured_data,
-                    ls.extraction_confidence,
-                    l.title as literature_title,
-                    l.authors,
-                    l.publication_year,
-                    ts_rank(to_tsvector('english', ls.content), plainto_tsquery('english', :query)) as rank_score
-                FROM literature_segments ls
-                JOIN literature l ON ls.literature_id = l.id
-                JOIN project_literature_associations pla ON l.id = pla.literature_id
-                WHERE pla.project_id = :project_id
-                    AND (
-                        to_tsvector('english', ls.content) @@ plainto_tsquery('english', :query)
-                        OR LOWER(ls.content) LIKE :query_pattern
-                    )
-                ORDER BY rank_score DESC
-                LIMIT :limit
-            """)
-            
-            query_pattern = f"%{query_lower}%"
-            
-            result = self.db.execute(sql, {
-                "query": query,
-                "query_pattern": query_pattern,
-                "project_id": project_id,
-                "limit": limit
-            })
-            
-            segments = []
-            for row in result:
-                # 计算关键词匹配度
-                content_lower = row.content.lower()
-                keyword_matches = sum(1 for kw in keywords if kw in content_lower)
-                keyword_score = keyword_matches / len(keywords) if keywords else 0
-                
-                segments.append({
-                    "id": row.id,
-                    "content": row.content,
-                    "segment_type": row.segment_type,
-                    "section_title": row.section_title,
-                    "structured_data": row.structured_data,
-                    "extraction_confidence": row.extraction_confidence,
-                    "literature_title": row.literature_title,
-                    "authors": row.authors,
-                    "publication_year": row.publication_year,
-                    "similarity_score": keyword_score,
-                    "rank_score": float(row.rank_score) if row.rank_score else 0.0,
-                    "search_type": "keyword"
-                })
-            
-            return segments
-            
-        except Exception as e:
-            logger.error(f"关键词搜索失败: {e}")
-            return []
-    
-    def _combine_and_rerank_results(
-        self,
-        vector_results: List[Dict],
-        keyword_results: List[Dict],
-        query: str,
-        top_k: int
-    ) -> List[Dict]:
-        """合并和重排序搜索结果"""
-        try:
-            # 合并结果，去重
-            all_results = {}
-            
-            # 添加向量搜索结果
-            for result in vector_results:
-                segment_id = result["id"]
-                result["vector_score"] = result["similarity_score"]
-                result["keyword_score"] = 0.0
-                all_results[segment_id] = result
-            
-            # 合并关键词搜索结果
-            for result in keyword_results:
-                segment_id = result["id"]
-                if segment_id in all_results:
-                    # 更新关键词评分
-                    all_results[segment_id]["keyword_score"] = result["similarity_score"]
-                    all_results[segment_id]["rank_score"] = result.get("rank_score", 0.0)
-                else:
-                    # 新结果
-                    result["vector_score"] = 0.0
-                    result["keyword_score"] = result["similarity_score"]
-                    all_results[segment_id] = result
-            
-            # 计算综合评分并排序
-            for result in all_results.values():
-                # 综合评分：向量相似度(60%) + 关键词匹配(30%) + 提取置信度(10%)
-                vector_score = result.get("vector_score", 0.0)
-                keyword_score = result.get("keyword_score", 0.0)
-                confidence = result.get("extraction_confidence", 0.5)
-                
-                result["final_score"] = (
-                    vector_score * 0.6 + 
-                    keyword_score * 0.3 + 
-                    confidence * 0.1
-                )
-                
-                # 更新最终相似度分数
-                result["similarity_score"] = result["final_score"]
-            
-            # 按综合评分排序
-            sorted_results = sorted(
-                all_results.values(),
-                key=lambda x: x["final_score"],
-                reverse=True
-            )
-            
-            return sorted_results[:top_k]
-            
-        except Exception as e:
-            logger.error(f"结果合并重排序失败: {e}")
-            return vector_results[:top_k]
-    
+
     async def build_embeddings_for_project(self, project_id: int):
-        """为项目构建向量嵌入"""
+        """同步项目文献和段落到Elasticsearch，确保有可检索的向量"""
         try:
-            logger.info(f"开始为项目 {project_id} 构建向量嵌入")
-            
-            # 获取项目所有文献段落
-            segments = self.db.query(LiteratureSegment).join(Literature).filter(
-                Literature.projects.any(id=project_id),
-                LiteratureSegment.content_embedding.is_(None)
-            ).all()
-            
-            if not segments:
-                logger.info("所有段落已有向量嵌入")
-                return
-            
-            # 批量生成嵌入
-            batch_size = 50
-            for i in range(0, len(segments), batch_size):
-                batch = segments[i:i + batch_size]
-                
-                # 准备文本列表
-                texts = [segment.content for segment in batch]
-                
-                # 批量获取嵌入
-                embeddings = await self._get_batch_embeddings(texts)
-                
-                if embeddings:
-                    # 更新数据库
-                    for j, segment in enumerate(batch):
-                        if j < len(embeddings):
-                            segment.content_embedding = embeddings[j]
-                    
-                    self.db.commit()
-                    logger.info(f"已处理 {i + len(batch)}/{len(segments)} 个段落")
-                
-                # 避免API限制
-                await asyncio.sleep(1)
-            
-            logger.info(f"项目 {project_id} 向量嵌入构建完成")
-            
-        except Exception as e:
-            logger.error(f"构建向量嵌入失败: {e}")
-    
-    async def _get_batch_embeddings(self, texts: List[str]) -> Optional[List[List[float]]]:
-        """批量获取文本嵌入"""
-        try:
-            # 清理和截断文本
-            cleaned_texts = []
-            for text in texts:
-                cleaned_text = text.strip()[:8000]  # 限制长度
-                if cleaned_text:
-                    cleaned_texts.append(cleaned_text)
-            
-            if not cleaned_texts:
-                return None
-            
-            response = await self.client.embeddings.create(
-                model=settings.openai_embedding_model,
-                input=cleaned_texts
+            data_sync = DataSyncService()
+            await data_sync.init_elasticsearch()
+
+            # 同步项目下的文献
+            literature_items = (
+                self.db.query(Literature)
+                .filter(Literature.projects.any(id=project_id))
+                .all()
             )
-            
-            return [data.embedding for data in response.data]
-            
+
+            for literature in literature_items:
+                await data_sync.sync_literature_to_es(literature.id, self.db)
+
+            # 同步项目段落
+            segment_items = (
+                self.db.query(LiteratureSegment)
+                .join(Literature)
+                .filter(Literature.projects.any(id=project_id))
+                .all()
+            )
+
+            for segment in segment_items:
+                await data_sync.sync_literature_segment_to_es(segment.id, self.db)
+
+            logger.info(f"项目 {project_id} 的文献和段落已同步到Elasticsearch")
+
         except Exception as e:
-            logger.error(f"批量获取嵌入失败: {e}")
-            return None
+            logger.error(f"构建项目 {project_id} 向量索引失败: {e}")
+
+    async def search_main_experiences(
+        self,
+        project_id: int,
+        research_domain: str,
+        top_k: int = 3
+    ) -> List[MainExperience]:
+        """获取项目主经验信息"""
+        try:
+            return (
+                self.db.query(MainExperience)
+                .filter(
+                    MainExperience.project_id == project_id,
+                    MainExperience.research_domain == research_domain
+                )
+                .order_by(MainExperience.completeness_score.desc())
+                .limit(top_k)
+                .all()
+            )
+        except Exception as e:
+            logger.error(f"查询主经验失败: {e}")
+            return []

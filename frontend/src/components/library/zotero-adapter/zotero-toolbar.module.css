@@ -1,0 +1,21 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.toolbar :global(.ant-input-search) {
+  max-width: 320px;
+}
+
+.switchLabel {
+  font-size: 0.8rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.selectionInfo {
+  font-size: 0.8rem;
+  color: rgba(148, 163, 184, 0.9);
+}

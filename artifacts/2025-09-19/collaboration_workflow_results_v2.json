@@ -1,0 +1,73 @@
+{
+  "base_url": "http://localhost:8000",
+  "results": [
+    {
+      "name": "login",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": null
+    },
+    {
+      "name": "project_create",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "id": 15,
+        "name": "Collab QA Project 1758294998",
+        "description": "Collaboration workflow test",
+        "research_direction": null,
+        "keywords": [],
+        "research_categories": null,
+        "status": "empty",
+        "literature_sources": null,
+        "max_literature_count": 1000,
+        "structure_template": null,
+        "extraction_prompts": null,
+        "owner_id": 37,
+        "created_at": "2025-09-19T15:16:38",
+        "updated_at": null,
+        "literature_count": 0,
+        "progress_percentage": null
+      }
+    },
+    {
+      "name": "workspace_create",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "workspace_id": "57b5cae1-4943-40a7-a61a-7af2cd96ac29",
+        "status": "created",
+        "join_url": "/workspace/57b5cae1-4943-40a7-a61a-7af2cd96ac29",
+        "workspace_data": {
+          "workspace_id": "57b5cae1-4943-40a7-a61a-7af2cd96ac29",
+          "project_id": 15,
+          "name": "协作测试工作区",
+          "description": "API 自动化创建",
+          "creator_id": 37,
+          "settings": {
+            "visibility": "private"
+          },
+          "created_at": "2025-09-19T15:16:38.923013",
+          "last_activity": "2025-09-19T15:16:38.923027",
+          "active_users": [],
+          "shared_annotations": {},
+          "research_insights": {},
+          "collaboration_stats": {
+            "total_contributions": 0,
+            "active_collaborators": 0,
+            "annotations_count": 0,
+            "insights_count": 0
+          }
+        }
+      }
+    }
+  ],
+  "summary": {
+    "PASS": 3,
+    "FAIL": 0
+  },
+  "generated_at": 1758294998
+}

@@ -1,0 +1,256 @@
+/* Touch-friendly enhancements for mobile devices */
+
+/* Touch target sizing - minimum 44px recommended for accessibility */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+.touch-target-large {
+  min-height: 48px;
+  min-width: 48px;
+  touch-action: manipulation;
+}
+
+/* Button enhancements for mobile */
+.btn-touch {
+  min-height: 44px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  touch-action: manipulation;
+  transition: all 0.2s ease;
+}
+
+.btn-touch:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+.btn-touch-large {
+  min-height: 48px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.btn-touch-small {
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  touch-action: manipulation;
+}
+
+/* Interactive areas with extended touch zones */
+.touch-area {
+  position: relative;
+  cursor: pointer;
+}
+
+.touch-area::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  background: transparent;
+  border-radius: inherit;
+}
+
+/* Enhanced click feedback */
+.click-feedback {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.click-feedback:active {
+  transform: scale(0.97);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.click-feedback::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+  pointer-events: none;
+}
+
+.click-feedback:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* Form control enhancements */
+.form-control-touch {
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 16px; /* Prevents zoom on iOS */
+  touch-action: manipulation;
+}
+
+.form-control-touch:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Navigation and menu items */
+.nav-item-touch {
+  min-height: 56px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  touch-action: manipulation;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.nav-item-touch:active {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(0.98);
+}
+
+/* Card touch enhancements */
+.card-touch {
+  touch-action: manipulation;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card-touch:active {
+  transform: scale(0.99);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Tab enhancements */
+.tab-touch {
+  min-height: 48px;
+  padding: 12px 20px;
+  touch-action: manipulation;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.tab-touch:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile-specific responsive enhancements */
+@media (max-width: 768px) {
+  /* Increase all interactive elements on mobile */
+  .ant-btn {
+    min-height: 44px;
+    padding: 12px 16px;
+    touch-action: manipulation;
+  }
+
+  .ant-btn-sm {
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+
+  .ant-btn-lg {
+    min-height: 52px;
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+
+  /* Form controls */
+  .ant-input,
+  .ant-select-selector {
+    min-height: 48px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .ant-input-sm {
+    min-height: 40px;
+  }
+
+  /* Menu items */
+  .ant-menu-item {
+    height: 56px;
+    line-height: 56px;
+    padding: 0 20px;
+  }
+
+  .ant-menu-submenu-title {
+    height: 56px;
+    line-height: 56px;
+    padding: 0 20px;
+  }
+
+  /* Tab panes */
+  .ant-tabs-tab {
+    padding: 12px 16px;
+    min-height: 48px;
+  }
+
+  /* Table cells for better touch */
+  .ant-table-tbody > tr > td {
+    padding: 16px;
+  }
+
+  /* Modal and drawer close buttons */
+  .ant-modal-close,
+  .ant-drawer-close {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Switch components */
+  .ant-switch {
+    min-width: 48px;
+    height: 24px;
+  }
+
+  /* Checkbox and radio */
+  .ant-checkbox-wrapper,
+  .ant-radio-wrapper {
+    min-height: 44px;
+    padding: 8px 0;
+    align-items: center;
+  }
+}
+
+/* Phone-specific enhancements */
+@media (max-width: 480px) {
+  .btn-touch {
+    min-height: 48px;
+    padding: 14px 18px;
+  }
+
+  .nav-item-touch {
+    min-height: 60px;
+    padding: 18px 16px;
+  }
+
+  .form-control-touch {
+    min-height: 52px;
+    padding: 14px 16px;
+  }
+
+  /* Larger tap targets for very small screens */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Enhanced visual feedback */
+  .click-feedback:active {
+    transform: scale(0.95);
+  }
+}

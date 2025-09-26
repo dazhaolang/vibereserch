@@ -3,7 +3,7 @@
 """
 
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
@@ -16,16 +16,22 @@ from app.core.security import (
 )
 from app.models.user import User, UserMembership, MembershipType
 from app.schemas.user_schemas import (
-    UserRegisterRequest, UserLoginRequest, TokenResponse, UserResponse, UserMembershipResponse
+    UserRegisterRequest,
+    UserLoginRequest,
+    TokenResponse,
+    UserResponse,
+    UserMembershipResponse,
+    MembershipTypeEnum,
 )
 from app.core.config import settings
+from app.services.security_service import log_login_event, log_logout_event, log_password_change_event
 
 router = APIRouter()
 
 # 使用统一的Schema定义，删除重复定义
 
 @router.post("/register", response_model=TokenResponse)
-async def register(user_data: UserRegisterRequest, db: Session = Depends(get_db)):
+async def register(user_data: UserRegisterRequest, request: Request, db: Session = Depends(get_db)):
     """用户注册"""
     
     # 检查邮箱是否已存在
@@ -65,6 +71,21 @@ async def register(user_data: UserRegisterRequest, db: Session = Depends(get_db)
     db.add(membership)
     db.commit()
     db.refresh(user)
+    db.refresh(membership)
+
+    membership_response = UserMembershipResponse(
+        id=membership.id,
+        user_id=membership.user_id,
+        membership_type=MembershipTypeEnum(membership.membership_type.value),
+        monthly_literature_used=membership.monthly_literature_used,
+        monthly_queries_used=membership.monthly_queries_used,
+        total_projects=membership.total_projects,
+        subscription_start=membership.subscription_start,
+        subscription_end=membership.subscription_end,
+        auto_renewal=membership.auto_renewal,
+        created_at=membership.created_at,
+        updated_at=membership.updated_at,
+    )
     
     # 生成访问令牌
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
@@ -85,9 +106,12 @@ async def register(user_data: UserRegisterRequest, db: Session = Depends(get_db)
         created_at=user.created_at,
         updated_at=user.updated_at,
         last_login=user.last_login,
-        membership=membership
+        membership=membership_response
     )
-    
+
+    # Log successful registration as a login event
+    log_login_event(db, user.id, request, success=True)
+
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
@@ -96,12 +120,16 @@ async def register(user_data: UserRegisterRequest, db: Session = Depends(get_db)
     )
 
 @router.post("/login", response_model=TokenResponse)
-async def login(login_data: UserLoginRequest, db: Session = Depends(get_db)):
+async def login(login_data: UserLoginRequest, request: Request, db: Session = Depends(get_db)):
     """用户登录"""
     
     # 验证用户
     user = db.query(User).filter(User.email == login_data.email).first()
     if not user or not verify_password(login_data.password, user.hashed_password):
+        # Log failed login attempt
+        if user:
+            log_login_event(db, user.id, request, success=False)
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="邮箱或密码错误",
@@ -127,7 +155,7 @@ async def login(login_data: UserLoginRequest, db: Session = Depends(get_db)):
         membership_response = UserMembershipResponse(
             id=membership.id,
             user_id=membership.user_id,
-            membership_type=membership.membership_type.value,
+            membership_type=MembershipTypeEnum(membership.membership_type.value),
             monthly_literature_used=membership.monthly_literature_used,
             monthly_queries_used=membership.monthly_queries_used,
             total_projects=membership.total_projects,
@@ -159,7 +187,10 @@ async def login(login_data: UserLoginRequest, db: Session = Depends(get_db)):
         last_login=user.last_login,
         membership=membership_response
     )
-    
+
+    # Log successful login
+    log_login_event(db, user.id, request, success=True)
+
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
@@ -206,6 +237,9 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
     )
 
 @router.post("/logout")
-async def logout():
+async def logout(request: Request, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
     """用户登出"""
+    # Log logout event
+    log_logout_event(db, current_user.id, request)
+
     return {"message": "登出成功"}

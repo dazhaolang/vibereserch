@@ -13,6 +13,7 @@ import aiohttp
 
 from app.core.config import settings
 from app.utils.retry_handler import with_retry, RetryStrategy
+from app.services.task_cost_tracker import task_cost_tracker
 
 class AIService:
     """AI服务类"""
@@ -80,7 +81,9 @@ class AIService:
                 temperature=0.1,
                 max_tokens=500
             )
+            self._record_usage("gpt-3.5-turbo", response)
             
+            self._record_usage("gpt-3.5-turbo", response)
             result_text = response.choices[0].message.content
             result = json.loads(result_text)
             
@@ -165,7 +168,9 @@ class AIService:
                 temperature=0.3,
                 max_tokens=2000
             )
+            self._record_usage(settings.openai_model, response)
             
+            self._record_usage(settings.openai_model, response)
             result_text = response.choices[0].message.content
             template = json.loads(result_text)
             
@@ -261,6 +266,7 @@ class AIService:
                 max_tokens=800
             )
             
+            self._record_usage("gpt-3.5-turbo", response)
             return response.choices[0].message.content.strip()
             
         except Exception as e:
@@ -337,7 +343,8 @@ class AIService:
                 temperature=0.3,
                 max_tokens=3000
             )
-            
+            self._record_usage(settings.openai_model, response)
+
             new_experience = response.choices[0].message.content
             
             # 计算信息增益
@@ -400,7 +407,8 @@ class AIService:
                 temperature=0.1,
                 max_tokens=1000
             )
-            
+            self._record_usage("gpt-3.5-turbo", response)
+
             result = json.loads(response.choices[0].message.content)
             return result.get("information_gain_ratio", 0.0)
             
@@ -463,14 +471,14 @@ class AIService:
 
 请生成完整的主经验内容。
 """
-            
             response = await self.client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
                 max_tokens=4000
             )
-            
+            self._record_usage(settings.openai_model, response)
+
             main_experience = response.choices[0].message.content
             
             return {
@@ -507,14 +515,14 @@ class AIService:
     "applications": ["应用1", "应用2"]
 }}
 """
-            
             response = await self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
                 max_tokens=500
             )
-            
+            self._record_usage("gpt-3.5-turbo", response)
+
             result = json.loads(response.choices[0].message.content)
             
             # 合并所有范围
@@ -571,14 +579,14 @@ class AIService:
 
 请确保回答具有实用性和可操作性。
 """
-            
             response = await self.client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=2000
             )
-            
+            self._record_usage(settings.openai_model, response)
+
             answer = response.choices[0].message.content
             
             return {
@@ -625,7 +633,8 @@ class AIService:
                 temperature=temperature,
                 max_tokens=max_tokens
             )
-            
+            self._record_usage(model or settings.openai_model, response)
+
             content = response.choices[0].message.content
             
             return {
@@ -690,6 +699,20 @@ class AIService:
             logger.error(f"获取嵌入向量失败: {e}")
             # 返回零向量作为fallback
             return [0.0] * 1536
+
+    def _record_usage(self, model: str, response) -> None:
+        try:
+            usage = getattr(response, "usage", None)
+            if not usage:
+                return
+            usage_payload = {
+                "prompt_tokens": getattr(usage, "prompt_tokens", 0),
+                "completion_tokens": getattr(usage, "completion_tokens", 0),
+                "total_tokens": getattr(usage, "total_tokens", 0),
+            }
+            task_cost_tracker.record_usage(model, usage_payload)
+        except Exception as exc:
+            logger.warning(f"记录token使用失败: {exc}")
 
     async def get_embeddings_batch(self, texts: List[str], model: str = None) -> List[List[float]]:
         """

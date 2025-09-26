@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  font-feature-settings: 'liga' 1, 'calt' 1;
+
+  --color-primary: #2563eb;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-border-base: rgba(148, 163, 184, 0.35);
+  --color-border-subtle: rgba(148, 163, 184, 0.18);
+  --color-scrollbar-thumb: rgba(148, 163, 184, 0.55);
+
+  --color-bg-body: #f8fafc;
+  --color-bg-surface: rgba(255, 255, 255, 0.9);
+  --color-bg-sidebar: rgba(255, 255, 255, 0.92);
+
+  --app-gradient: linear-gradient(160deg, #f8fafc 0%, #e2e8f0 45%, #f1f5f9 100%);
+  --sidebar-background: rgba(255, 255, 255, 0.92);
+  --sidebar-border-color: rgba(148, 163, 184, 0.24);
+  --sidebar-hover-bg: rgba(37, 99, 235, 0.1);
+  --main-surface-background: rgba(255, 255, 255, 0.92);
+  --main-surface-border: rgba(148, 163, 184, 0.18);
+  --topbar-background: linear-gradient(180deg, rgba(248, 250, 252, 0.92) 0%, rgba(248, 250, 252, 0.6) 60%, rgba(248, 250, 252, 0) 100%);
+  --glass-background: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --control-surface-bg: rgba(255, 255, 255, 0.8);
+  --control-surface-active: rgba(37, 99, 235, 0.14);
+  --control-border: rgba(148, 163, 184, 0.28);
+  --control-text: var(--color-text-primary);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-primary: #4c6ef5;
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: rgba(148, 163, 184, 0.85);
+  --color-text-muted: rgba(148, 163, 184, 0.65);
+  --color-border-base: rgba(148, 163, 184, 0.24);
+  --color-border-subtle: rgba(148, 163, 184, 0.12);
+  --color-scrollbar-thumb: rgba(148, 163, 184, 0.4);
+
+  --color-bg-body: #0f172a;
+  --color-bg-surface: rgba(15, 23, 42, 0.55);
+  --color-bg-sidebar: rgba(15, 23, 42, 0.75);
+
+  --app-gradient: linear-gradient(160deg, rgba(15,23,42,1) 0%, rgba(30,41,59,1) 45%, rgba(8,47,73,1) 100%);
+  --sidebar-background: rgba(15, 23, 42, 0.75);
+  --sidebar-border-color: rgba(148, 163, 184, 0.15);
+  --sidebar-hover-bg: rgba(148, 163, 184, 0.12);
+  --main-surface-background: rgba(15, 23, 42, 0.55);
+  --main-surface-border: rgba(148, 163, 184, 0.16);
+  --topbar-background: linear-gradient(180deg, rgba(15,23,42,0.72) 0%, rgba(15,23,42,0.3) 60%, rgba(15,23,42,0) 100%);
+  --glass-background: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --control-surface-bg: rgba(30, 41, 59, 0.45);
+  --control-surface-active: rgba(59, 130, 246, 0.18);
+  --control-border: rgba(148, 163, 184, 0.25);
+  --control-text: #e2e8f0;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--app-gradient);
+  color: var(--color-text-primary);
+  overflow-x: hidden;
+}
+
+button {
+  font-family: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar-thumb);
+  border-radius: 6px;
+}
+
+/* Aurora Background Animation */
+.aurora-bg {
+  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  background-size: 400% 400%;
+  animation: aurora 20s ease-in-out infinite;
+}
+
+/* Custom Ant Design Overrides */
+.ant-btn-primary {
+  @apply bg-primary-600 border-primary-600 hover:bg-primary-700 hover:border-primary-700;
+}
+
+.ant-input {
+  @apply border-neural-300 focus:border-primary-500;
+}
+
+.ant-select-selector {
+  @apply border-neural-300 hover:border-primary-500;
+}
+
+/* Timer Ring Animation */
+.timer-ring {
+  transform-origin: center;
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Glass morphism effect */
+.glass {
+  backdrop-filter: blur(20px);
+  background: var(--glass-background);
+  border: 1px solid var(--glass-border);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress indicators */
+.progress-ring {
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.progress-ring circle {
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+:root[data-theme='light'] .text-white,
+:root[data-theme='light'] .\!text-white {
+  color: var(--color-text-primary) !important;
+}
+
+:root[data-theme='light'] .text-neutral-300,
+:root[data-theme='light'] .\!text-neutral-300,
+:root[data-theme='light'] .text-slate-300,
+:root[data-theme='light'] .\!text-slate-300 {
+  color: var(--color-text-secondary) !important;
+}
+
+:root[data-theme='light'] .bg-neutral-900\/50,
+:root[data-theme='light'] .bg-neutral-900\/40 {
+  background-color: var(--color-bg-surface) !important;
+}
+
+:root[data-theme='light'] .border-neutral-800 {
+  border-color: var(--color-border-base) !important;
+}

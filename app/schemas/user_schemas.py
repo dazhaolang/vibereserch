@@ -3,7 +3,7 @@
 确保API请求响应的类型安全和一致性
 """
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -24,6 +24,26 @@ class ProjectStatusEnum(str, Enum):
     COMPLETED = "completed"
     ARCHIVED = "archived"
 
+class SecurityEventTypeEnum(str, Enum):
+    LOGIN = "login"
+    LOGOUT = "logout"
+    PASSWORD_CHANGE = "password_change"
+    FAILED_LOGIN = "failed_login"
+
+class NotificationTypeEnum(str, Enum):
+    TASK_COMPLETED = "task_completed"
+    TASK_FAILED = "task_failed"
+    MEMBERSHIP_EXPIRING = "membership_expiring"
+    MEMBERSHIP_EXPIRED = "membership_expired"
+    SYSTEM_ALERT = "system_alert"
+    PROJECT_SHARED = "project_shared"
+    COMMENT_ADDED = "comment_added"
+
+class NotificationStatusEnum(str, Enum):
+    UNREAD = "unread"
+    READ = "read"
+    ARCHIVED = "archived"
+
 # ============================================
 # 请求模型
 # ============================================
@@ -36,16 +56,18 @@ class UserRegisterRequest(BaseModel):
     institution: Optional[str] = Field(None, max_length=300, description="所属机构")
     research_field: Optional[str] = Field(None, description="研究领域")
     
-    @validator('username')
-    def validate_username(cls, v):
-        if not v.replace('_', '').replace('-', '').isalnum():
-            raise ValueError('用户名只能包含字母、数字、下划线和连字符')
-        return v.lower()
-    
-    @validator('email')
-    def validate_email_domain(cls, v):
+    @field_validator("username", mode="before")
+    def validate_username(cls, value):
+        value_str = str(value).strip()
+        if not value_str:
+            raise ValueError("用户名不能为空")
+        return value_str
+
+    @field_validator("email", mode="before")
+    def validate_email_domain(cls, value):
+        value_str = str(value)
         # 可以添加特定的邮箱域名验证
-        return v.lower()
+        return value_str.lower()
 
 class UserLoginRequest(BaseModel):
     email: EmailStr = Field(..., description="用户邮箱")
@@ -87,13 +109,14 @@ class UserResponse(BaseModel):
     full_name: Optional[str]
     institution: Optional[str]
     research_field: Optional[str]
+    avatar_url: Optional[str] = None
     is_active: bool
     is_verified: bool
     created_at: datetime
     updated_at: Optional[datetime]
     last_login: Optional[datetime]
     membership: Optional[UserMembershipResponse]
-    
+
     class Config:
         from_attributes = True
 
@@ -164,7 +187,7 @@ class MembershipLimits(BaseModel):
                 'max_literature': 500,
                 'max_projects': 3,
                 'max_monthly_queries': 100,
-                'available_sources': ['researchrabbit', 'semantic_scholar', 'pubmed'],
+                'available_sources': ['researchrabbit'],
                 'api_rate_limit': 30,
                 'concurrent_requests': 3
             },
@@ -172,7 +195,7 @@ class MembershipLimits(BaseModel):
                 'max_literature': 2000,
                 'max_projects': 10,
                 'max_monthly_queries': 500,
-                'available_sources': ['researchrabbit', 'semantic_scholar', 'google_scholar', 'pubmed', 'arxiv'],
+                'available_sources': ['researchrabbit'],
                 'api_rate_limit': 120,
                 'concurrent_requests': 10
             },
@@ -180,7 +203,7 @@ class MembershipLimits(BaseModel):
                 'max_literature': 10000,
                 'max_projects': 50,
                 'max_monthly_queries': 2000,
-                'available_sources': ['researchrabbit', 'semantic_scholar', 'google_scholar', 'pubmed', 'arxiv', 'crossref'],
+                'available_sources': ['researchrabbit'],
                 'api_rate_limit': 300,
                 'concurrent_requests': 50
             }
@@ -223,6 +246,42 @@ class PasswordUpdateResponse(BaseModel):
     """密码更新响应"""
     success: bool
     message: str
-    
+
     class Config:
         from_attributes = True
+
+class SecurityEventResponse(BaseModel):
+    """安全事件响应"""
+    id: int
+    user_id: int
+    event_type: SecurityEventTypeEnum
+    ip_address: str
+    location: Optional[str] = None
+    device_info: Optional[str] = None
+    user_agent: Optional[str] = None
+    metadata: Optional[dict] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class NotificationResponse(BaseModel):
+    """通知响应"""
+    id: int
+    user_id: int
+    type: NotificationTypeEnum
+    title: str
+    message: str
+    status: NotificationStatusEnum
+    action_url: Optional[str] = None
+    metadata: Optional[dict] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    read_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class NotificationUpdateRequest(BaseModel):
+    """通知更新请求"""
+    status: NotificationStatusEnum

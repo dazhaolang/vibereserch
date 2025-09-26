@@ -1,0 +1,54 @@
+{
+  "name": "vibereserch-mcp-server",
+  "version": "1.0.0",
+  "description": "科研文献智能分析平台MCP服务器 - 提供文献采集、处理、分析和知识查询等功能",
+  "author": "VibeReserch Team",
+  "license": "MIT",
+  "homepage": "https://github.com/your-repo/vibereserch",
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false
+  },
+  "server": {
+    "type": "stdio",
+    "command": "python3",
+    "args": [
+      "app/mcp_server.py"
+    ],
+    "env": {},
+    "cwd": "."
+  },
+  "tools": [
+    {
+      "name": "collect_literature",
+      "description": "采集科研文献并进行智能筛选"
+    },
+    {
+      "name": "structure_literature",
+      "description": "对文献进行轻结构化处理"
+    },
+    {
+      "name": "generate_experience",
+      "description": "基于结构化文献生成研究经验"
+    },
+    {
+      "name": "query_knowledge",
+      "description": "基于经验库和文献库进行智能问答"
+    },
+    {
+      "name": "create_project",
+      "description": "创建新的研究项目"
+    },
+    {
+      "name": "get_project_status",
+      "description": "获取项目状态和进度"
+    }
+  ],
+  "metadata": {
+    "tags": ["research", "literature", "ai", "chinese", "academic"],
+    "category": "research",
+    "protocolVersion": "2025-06-18",
+    "minClaudeCodeVersion": "1.0.0"
+  }
+}

@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 # 文档处理库
 import PyPDF2
-import docx
+from docx import Document
 from pptx import Presentation
 import pandas as pd
 import xml.etree.ElementTree as ET

@@ -1,0 +1,107 @@
+/* Mobile Project Steps Styling */
+.mobile-project-steps {
+  /* Override Ant Design Steps for mobile optimization */
+}
+
+.mobile-project-steps .ant-steps-item {
+  padding-bottom: 24px;
+}
+
+.mobile-project-steps .ant-steps-item:last-child {
+  padding-bottom: 0;
+}
+
+.mobile-project-steps .ant-steps-item-icon {
+  width: 32px;
+  height: 32px;
+  line-height: 30px;
+  font-size: 16px;
+  margin-top: 4px;
+}
+
+.mobile-project-steps .ant-steps-item-tail {
+  padding: 8px 0 24px;
+}
+
+.mobile-project-steps .ant-steps-item-tail::after {
+  background: linear-gradient(to bottom, #e2e8f0, #cbd5e1);
+  width: 2px;
+}
+
+.mobile-project-steps .ant-steps-item-content {
+  min-height: auto;
+  margin-left: 16px;
+  padding-left: 0;
+}
+
+.mobile-project-steps .ant-steps-item-title {
+  font-size: 16px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  padding-right: 0;
+}
+
+.mobile-project-steps .ant-steps-item-description {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Touch-friendly button styling */
+.mobile-project-steps .ant-btn {
+  height: 36px;
+  border-radius: 8px;
+  font-weight: 500;
+  touch-action: manipulation;
+}
+
+.mobile-project-steps .ant-btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Custom status colors for better mobile visibility */
+.mobile-project-steps .ant-steps-item-process .ant-steps-item-icon {
+  background: linear-gradient(135deg, #38bdf8, #3b82f6);
+  border-color: #3b82f6;
+}
+
+.mobile-project-steps .ant-steps-item-finish .ant-steps-item-icon {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-color: #16a34a;
+}
+
+.mobile-project-steps .ant-steps-item-wait .ant-steps-item-icon {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+/* Responsive spacing adjustments */
+@media (max-width: 480px) {
+  .mobile-project-steps .ant-steps-item-icon {
+    width: 28px;
+    height: 28px;
+    line-height: 26px;
+    font-size: 14px;
+  }
+
+  .mobile-project-steps .ant-steps-item-content {
+    margin-left: 12px;
+  }
+
+  .mobile-project-steps .ant-steps-item-title {
+    font-size: 15px;
+  }
+
+  .mobile-project-steps .ant-btn {
+    height: 34px;
+    padding: 0 14px;
+  }
+
+  .mobile-project-steps .ant-btn-sm {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+}

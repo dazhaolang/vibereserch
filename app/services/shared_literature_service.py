@@ -129,7 +129,7 @@ class SharedLiteratureService:
                 abstract=paper_data.get("abstract", ""),
                 journal=paper_data.get("venue", {}).get("name", ""),
                 publication_year=paper_data.get("year"),
-                source_platform="research_rabbit",
+                source_platform="semantic_scholar",
                 source_url=paper_data.get("url", ""),
                 citation_count=paper_data.get("citationCount", 0),
                 quality_score=80.0,  # Research Rabbit的文献质量较高

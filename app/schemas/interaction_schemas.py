@@ -5,7 +5,7 @@
 
 from typing import Dict, List, Optional, Any, Union, Literal
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class InteractionStartRequest(BaseModel):
@@ -15,18 +15,20 @@ class InteractionStartRequest(BaseModel):
     project_id: int = Field(..., gt=0, description="项目ID")
     additional_context: Optional[Dict[str, Any]] = Field(default={}, description="额外上下文信息")
 
-    @validator('context_type')
-    def validate_context_type(cls, v):
-        allowed_types = ['search', 'structuring', 'experience']
-        if v not in allowed_types:
-            raise ValueError(f'context_type必须是以下之一: {allowed_types}')
-        return v
+    @field_validator("context_type", mode="before")
+    def validate_context_type(cls, value):
+        allowed_types = ["search", "structuring", "experience"]
+        value_str = str(value)
+        if value_str not in allowed_types:
+            raise ValueError(f"context_type必须是以下之一: {allowed_types}")
+        return value_str
 
-    @validator('user_input')
-    def validate_user_input(cls, v):
-        if not v.strip():
-            raise ValueError('用户输入不能为空')
-        return v.strip()
+    @field_validator("user_input", mode="before")
+    def validate_user_input(cls, value):
+        value_str = str(value)
+        if not value_str.strip():
+            raise ValueError("用户输入不能为空")
+        return value_str.strip()
 
 
 class ClarificationOptionModel(BaseModel):
@@ -73,13 +75,14 @@ class SelectionRequest(BaseModel):
     selection_data: Optional[Dict[str, Any]] = Field(default={}, description="选择相关数据")
     client_timestamp: str = Field(..., description="客户端时间戳")
 
-    @validator('client_timestamp')
-    def validate_timestamp(cls, v):
+    @field_validator("client_timestamp", mode="before")
+    def validate_timestamp(cls, value):
+        value_str = str(value)
         try:
-            datetime.fromisoformat(v.replace('Z', '+00:00'))
-            return v
+            datetime.fromisoformat(value_str.replace("Z", "+00:00"))
+            return value_str
         except ValueError:
-            raise ValueError('client_timestamp必须是有效的ISO时间格式')
+            raise ValueError("client_timestamp必须是有效的ISO时间格式")
 
 
 class TimeoutRequest(BaseModel):
@@ -87,13 +90,14 @@ class TimeoutRequest(BaseModel):
     timeout_timestamp: str = Field(..., description="超时时间戳")
     auto_selected_option_id: Optional[str] = Field(None, description="自动选择的选项ID")
 
-    @validator('timeout_timestamp')
-    def validate_timestamp(cls, v):
+    @field_validator("timeout_timestamp", mode="before")
+    def validate_timestamp(cls, value):
+        value_str = str(value)
         try:
-            datetime.fromisoformat(v.replace('Z', '+00:00'))
-            return v
+            datetime.fromisoformat(value_str.replace("Z", "+00:00"))
+            return value_str
         except ValueError:
-            raise ValueError('timeout_timestamp必须是有效的ISO时间格式')
+            raise ValueError("timeout_timestamp必须是有效的ISO时间格式")
 
 
 class CustomInputRequest(BaseModel):
@@ -102,19 +106,21 @@ class CustomInputRequest(BaseModel):
     context: Optional[Dict[str, Any]] = Field(default={}, description="输入上下文")
     client_timestamp: str = Field(..., description="客户端时间戳")
 
-    @validator('custom_input')
-    def validate_custom_input(cls, v):
-        if not v.strip():
-            raise ValueError('自定义输入不能为空')
-        return v.strip()
+    @field_validator("custom_input", mode="before")
+    def validate_custom_input(cls, value):
+        value_str = str(value)
+        if not value_str.strip():
+            raise ValueError("自定义输入不能为空")
+        return value_str.strip()
 
-    @validator('client_timestamp')
-    def validate_timestamp(cls, v):
+    @field_validator("client_timestamp", mode="before")
+    def validate_timestamp(cls, value):
+        value_str = str(value)
         try:
-            datetime.fromisoformat(v.replace('Z', '+00:00'))
-            return v
+            datetime.fromisoformat(value_str.replace("Z", "+00:00"))
+            return value_str
         except ValueError:
-            raise ValueError('client_timestamp必须是有效的ISO时间格式')
+            raise ValueError("client_timestamp必须是有效的ISO时间格式")
 
 
 class ProgressUpdateModel(BaseModel):
@@ -134,12 +140,13 @@ class SelectionResponse(BaseModel):
     error: Optional[str] = Field(None, description="错误信息")
     error_code: Optional[str] = Field(None, description="错误代码")
 
-    @validator('next_action')
-    def validate_next_action(cls, v):
-        allowed_actions = ['continue_workflow', 'next_clarification', 'complete_interaction']
-        if v not in allowed_actions:
-            raise ValueError(f'next_action必须是以下之一: {allowed_actions}')
-        return v
+    @field_validator("next_action", mode="before")
+    def validate_next_action(cls, value):
+        allowed_actions = ["continue_workflow", "next_clarification", "complete_interaction"]
+        value_str = str(value)
+        if value_str not in allowed_actions:
+            raise ValueError(f"next_action必须是以下之一: {allowed_actions}")
+        return value_str
 
 
 class TimeoutResponse(SelectionResponse):
@@ -169,12 +176,13 @@ class InteractionHistoryItem(BaseModel):
     action_data: Dict[str, Any] = Field(..., description="操作数据")
     ai_response: Dict[str, Any] = Field(..., description="AI响应")
 
-    @validator('user_action')
-    def validate_user_action(cls, v):
-        allowed_actions = ['selection', 'custom_input', 'timeout']
-        if v not in allowed_actions:
-            raise ValueError(f'user_action必须是以下之一: {allowed_actions}')
-        return v
+    @field_validator("user_action", mode="before")
+    def validate_user_action(cls, value):
+        allowed_actions = ["selection", "custom_input", "timeout"]
+        value_str = str(value)
+        if value_str not in allowed_actions:
+            raise ValueError(f"user_action必须是以下之一: {allowed_actions}")
+        return value_str
 
 
 class ClarificationResponse(BaseModel):
@@ -221,13 +229,15 @@ class EndSessionRequest(BaseModel):
     reason: Optional[str] = Field(None, description="结束原因")
     feedback: Optional[Dict[str, Any]] = Field(default={}, description="用户反馈")
 
-    @validator('reason')
-    def validate_reason(cls, v):
-        if v is not None:
-            allowed_reasons = ['user_cancelled', 'completed', 'timeout', 'error']
-            if v not in allowed_reasons:
-                raise ValueError(f'reason必须是以下之一: {allowed_reasons}')
-        return v
+    @field_validator("reason", mode="before")
+    def validate_reason(cls, value):
+        if value is not None:
+            allowed_reasons = ["user_cancelled", "completed", "timeout", "error"]
+            value_str = str(value)
+            if value_str not in allowed_reasons:
+                raise ValueError(f"reason必须是以下之一: {allowed_reasons}")
+            return value_str
+        return value
 
 
 class SessionSummary(BaseModel):
@@ -246,12 +256,13 @@ class EndSessionResponse(BaseModel):
     cleanup_status: str = Field(..., description="清理状态")
     error: Optional[str] = Field(None, description="错误信息")
 
-    @validator('cleanup_status')
-    def validate_cleanup_status(cls, v):
-        allowed_status = ['completed', 'partial', 'failed']
-        if v not in allowed_status:
-            raise ValueError(f'cleanup_status必须是以下之一: {allowed_status}')
-        return v
+    @field_validator("cleanup_status", mode="before")
+    def validate_cleanup_status(cls, value):
+        allowed_status = ["completed", "partial", "failed"]
+        value_str = str(value)
+        if value_str not in allowed_status:
+            raise ValueError(f"cleanup_status必须是以下之一: {allowed_status}")
+        return value_str
 
 
 # WebSocket事件模型
@@ -290,12 +301,13 @@ class InteractionCompletedEvent(WebSocketEvent):
     session_summary: SessionSummary = Field(..., description="会话摘要")
     next_action: str = Field(..., description="下一步操作")
 
-    @validator('next_action')
-    def validate_next_action(cls, v):
-        allowed_actions = ['redirect', 'refresh', 'continue']
-        if v not in allowed_actions:
-            raise ValueError(f'next_action必须是以下之一: {allowed_actions}')
-        return v
+    @field_validator("next_action", mode="before")
+    def validate_next_action(cls, value):
+        allowed_actions = ["redirect", "refresh", "continue"]
+        value_str = str(value)
+        if value_str not in allowed_actions:
+            raise ValueError(f"next_action必须是以下之一: {allowed_actions}")
+        return value_str
 
 
 class ProgressUpdateEvent(WebSocketEvent):
@@ -315,12 +327,13 @@ class ErrorEvent(WebSocketEvent):
     severity: str = Field(..., description="严重程度")
     recovery_action: Optional[str] = Field(None, description="恢复操作")
 
-    @validator('severity')
-    def validate_severity(cls, v):
-        allowed_severity = ['low', 'medium', 'high', 'critical']
-        if v not in allowed_severity:
-            raise ValueError(f'severity必须是以下之一: {allowed_severity}')
-        return v
+    @field_validator("severity", mode="before")
+    def validate_severity(cls, value):
+        allowed_severity = ["low", "medium", "high", "critical"]
+        value_str = str(value)
+        if value_str not in allowed_severity:
+            raise ValueError(f"severity必须是以下之一: {allowed_severity}")
+        return value_str
 
 
 class TimerSyncEvent(WebSocketEvent):
@@ -330,9 +343,10 @@ class TimerSyncEvent(WebSocketEvent):
     recommended_option_id: str = Field(..., description="推荐选项ID")
     timer_status: str = Field(..., description="计时器状态")
 
-    @validator('timer_status')
-    def validate_timer_status(cls, v):
-        allowed_status = ['running', 'paused', 'stopped']
-        if v not in allowed_status:
-            raise ValueError(f'timer_status必须是以下之一: {allowed_status}')
-        return v
+    @field_validator("timer_status", mode="before")
+    def validate_timer_status(cls, value):
+        allowed_status = ["running", "paused", "stopped"]
+        value_str = str(value)
+        if value_str not in allowed_status:
+            raise ValueError(f"timer_status必须是以下之一: {allowed_status}")
+        return value_str

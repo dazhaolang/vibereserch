@@ -512,10 +512,16 @@ class EnhancedExperienceEngine:
                 research_domain=research_domain,
                 coverage_scope=main_exp_result.get("coverage_scope", []),
                 content=main_exp_result["main_experience"],
+                structured_knowledge=main_exp_result.get("structured_knowledge", {}),
+                experience_type=main_exp_result.get("experience_type", "可靠性优化经验"),
+                key_findings=main_exp_result.get("key_findings", []),
+                practical_guidelines=main_exp_result.get("practical_guidelines", []),
                 source_literature_count=len(literature_contents),
+                literature_count=len(high_quality_segments) + len(medium_quality_segments) + len(low_quality_segments),
                 completeness_score=min(0.95, 0.7 + avg_reliability * 0.25),  # 基于可靠性调整完整性
                 accuracy_score=min(0.95, 0.6 + avg_reliability * 0.35),      # 基于可靠性调整准确性
-                usefulness_score=min(0.95, 0.7 + avg_impact_factor * 0.05)   # 基于影响因子调整实用性
+                usefulness_score=min(0.95, 0.7 + avg_impact_factor * 0.05),   # 基于影响因子调整实用性
+                quality_score=max(avg_reliability, avg_impact_factor / 10)
             )
             
             self.db.add(main_experience)
@@ -695,12 +701,19 @@ class EnhancedExperienceEngine:
                     project_id=project.id,
                     experience_type=exp_type,
                     title=f"{project.name} - {exp_type}",
+                    research_domain=project.research_direction or project.research_field or exp_type,
+                    coverage_scope=exp_data.get("coverage_scope", []),
                     content=exp_data["content"],
-                    methodology_summary=exp_data.get("methodology_summary", ""),
+                    structured_knowledge=exp_data.get("structured_knowledge", {}),
+                    methodology_summary=exp_data.get("methodology_summary", {}),
                     key_findings=exp_data.get("key_findings", []),
                     practical_guidelines=exp_data.get("practical_guidelines", []),
+                    source_literature_count=exp_data.get("source_literature_count", exp_data.get("literature_count", 0)),
                     literature_count=exp_data.get("literature_count", 0),
-                    quality_score=exp_data.get("quality_score", 0.0),
+                    completeness_score=exp_data.get("completeness_score"),
+                    accuracy_score=exp_data.get("accuracy_score"),
+                    usefulness_score=exp_data.get("usefulness_score"),
+                    quality_score=exp_data.get("quality_score"),
                     version="1.0",
                     status="active"
                 )
@@ -774,12 +787,23 @@ class EnhancedExperienceEngine:
         
         # 第三步：逐个更新主经验
         for i, main_exp in enumerate(existing_experiences):
-            exp_type = main_exp.experience_type
-            
+            exp_type = (main_exp.experience_type or "未分类经验").strip()
+
+            type_config = self.main_experience_types.get(exp_type)
+            fallback_keywords = []
+            if not type_config:
+                fallback_keywords = [
+                    "制备",
+                    "表征",
+                    "性能",
+                    "应用",
+                ]
+            keywords = (type_config or {}).get("keywords", fallback_keywords)
+
             # 获取与此主经验相关的新文献段落
             type_relevant_segments = self._get_relevant_segments_for_type(
-                {"new": relevant_segments}, 
-                self.main_experience_types.get(exp_type, {}).get("keywords", [])
+                {"new": relevant_segments},
+                keywords,
             )
             
             if type_relevant_segments:

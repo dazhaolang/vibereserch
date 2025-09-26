@@ -429,11 +429,11 @@ class ExperimentDesignService:
                 
                 for exp in main_experiences:
                     experience_data["main_experiences"].append({
-                        "type": exp.experience_type,
+                        "type": exp.experience_type or "未分类经验",
                         "content": exp.content,
-                        "methodology_summary": exp.methodology_summary,
-                        "key_findings": exp.key_findings,
-                        "practical_guidelines": exp.practical_guidelines
+                        "methodology_summary": exp.methodology_summary or {},
+                        "key_findings": exp.key_findings or [],
+                        "practical_guidelines": exp.practical_guidelines or [],
                     })
             
             # 获取相关经验书

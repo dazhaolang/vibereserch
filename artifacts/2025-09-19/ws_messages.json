@@ -1,0 +1,23 @@
+{
+  "base_url": "http://localhost:8000",
+  "ws_url": "ws://localhost:8000/ws/global?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzU4MzE0ODMyfQ.nR3CU7UdgTJ1nx7cSs97eANLGKQ7ifinsTn8nyVMbeI",
+  "summary": {
+    "total": 2,
+    "by_type": {
+      "global_connection_established": 1,
+      "active_tasks": 1
+    }
+  },
+  "messages": [
+    {
+      "received_at": 1758286032.332685,
+      "event_type": "global_connection_established",
+      "raw": "{\"type\": \"global_connection_established\", \"message\": \"全局WebSocket连接已建立\"}"
+    },
+    {
+      "received_at": 1758286032.332807,
+      "event_type": "active_tasks",
+      "raw": "{\"type\": \"active_tasks\", \"tasks\": {}}"
+    }
+  ]
+}

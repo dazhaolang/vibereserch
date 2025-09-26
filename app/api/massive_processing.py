@@ -45,7 +45,7 @@ class ProcessingConfigOptimizationRequest(BaseModel):
 
 class IntegratedLiteratureProcessingRequest(BaseModel):
     """集成文献处理请求模型"""
-    keywords: List[str] = Field(..., min_items=1, description="搜索关键词")
+    keywords: List[str] = Field(..., min_length=1, description="搜索关键词")
     project_id: int = Field(..., description="项目ID")
     max_count: int = Field(200, ge=10, le=1000, description="最大文献数量")
     enable_massive_processing: bool = Field(True, description="是否启用大规模处理")

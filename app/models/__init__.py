@@ -8,6 +8,7 @@ from app.models.project import Project, project_literature_association
 from app.models.literature import Literature, LiteratureSegment
 from app.models.shared_literature import SharedLiterature, UserLiteratureReference
 from app.models.task import Task, TaskProgress, TaskType, TaskStatus
+from app.models.research_share import ResearchShare
 from app.models.experience import ExperienceBook, MainExperience
 from app.models.collaboration import (
     Team, TeamMember, ProjectCollaboration, CollaborationInvitation,
@@ -40,6 +41,9 @@ __all__ = [
     'TaskProgress',
     'TaskType',
     'TaskStatus',
+
+    # 研究分享模型
+    'ResearchShare',
     
     # 经验模型
     'ExperienceBook',

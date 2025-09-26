@@ -1,0 +1,50 @@
+.card {
+  position: relative;
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  overflow: hidden;
+}
+
+.glow {
+  position: absolute;
+  inset: -60% -20%;
+  filter: blur(90px);
+  opacity: 0.6;
+}
+
+.label {
+  position: relative;
+  font-size: 0.95rem;
+  color: rgba(203, 213, 225, 0.85);
+}
+
+.value {
+  position: relative;
+  display: block;
+  margin-top: 18px;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #f8fafc;
+  min-height: 40px;
+}
+
+.skeleton {
+  display: inline-block;
+  width: 120px;
+  height: 28px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.4), rgba(148, 163, 184, 0.2));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}

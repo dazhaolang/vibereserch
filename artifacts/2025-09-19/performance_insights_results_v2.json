@@ -1,0 +1,229 @@
+{
+  "base_url": "http://localhost:8000",
+  "results": [
+    {
+      "name": "login",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": null
+    },
+    {
+      "name": "project_create",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "id": 16,
+        "name": "Performance QA Project 1758295028",
+        "description": "Performance API 测试项目",
+        "research_direction": null,
+        "keywords": [],
+        "research_categories": null,
+        "status": "empty",
+        "literature_sources": null,
+        "max_literature_count": 1000,
+        "structure_template": null,
+        "extraction_prompts": null,
+        "owner_id": 37,
+        "created_at": "2025-09-19T15:17:08",
+        "updated_at": null,
+        "literature_count": 0,
+        "progress_percentage": null
+      }
+    },
+    {
+      "name": "performance_status",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "status": "degraded",
+        "overall_score": 45.199999999999996,
+        "cpu_score": 35.599999999999994,
+        "memory_score": 54.8,
+        "current_metrics": {
+          "cpu_usage": 64.4,
+          "memory_usage": 45.2,
+          "disk_usage": 66.1780055878809,
+          "network_bytes_sent": 12739501861,
+          "network_bytes_recv": 15802439217,
+          "process_count": 280,
+          "active_users_24h": 14,
+          "literature_processed_today": 0,
+          "active_projects_24h": 0
+        },
+        "performance_trends": {},
+        "optimization_suggestions": [],
+        "active_alerts": [],
+        "timestamp": "2025-09-19T15:17:08.644506"
+      }
+    },
+    {
+      "name": "performance_dashboard",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "system_health": {
+          "overall_score": 45.199999999999996,
+          "cpu_score": 35.599999999999994,
+          "memory_score": 54.8,
+          "throughput_score": 80.0,
+          "latency_score": 85.0,
+          "cost_efficiency_score": 90.0,
+          "timestamp": "2025-09-19T15:17:08.658479"
+        },
+        "current_metrics": {
+          "cpu_usage": 64.4,
+          "memory_usage": 45.2,
+          "disk_usage": 66.1780055878809,
+          "network_bytes_sent": 12739501861.0,
+          "network_bytes_recv": 15802439217.0,
+          "process_count": 280.0,
+          "active_users_24h": 14.0,
+          "literature_processed_today": 0.0,
+          "active_projects_24h": 0.0
+        },
+        "active_alerts": [],
+        "recent_optimizations": [],
+        "cost_analytics": {
+          "period_days": 30,
+          "total_spent": 0.0,
+          "daily_average": 0.0,
+          "remaining_budget": {
+            "daily": 1.0,
+            "monthly": 20.0
+          },
+          "cost_breakdown_by_mode": {
+            "lightweight": 0.0,
+            "standard": 0.0,
+            "deep": 0.0
+          },
+          "projected_monthly_cost": 0.0,
+          "cost_trend": "stable",
+          "recommendations": [
+            "使用轻量模式可以显著降低成本",
+            "启用智能缓存可以减少重复处理成本"
+          ]
+        },
+        "recommendations": [
+          "系统性能较低，建议错峰使用或联系技术支持",
+          "升级到付费版本可获得更高的处理限额和优先支持"
+        ]
+      }
+    },
+    {
+      "name": "performance_recommendations",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "user_id": 37,
+        "project_id": null,
+        "recommendations": [
+          "小批量处理建议使用深度模式获得更好的分析质量"
+        ],
+        "generated_at": "2025-09-19T15:17:08.703486",
+        "status": "success"
+      }
+    },
+    {
+      "name": "performance_cost_analytics",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "user_id": 37,
+        "analytics_period": 30,
+        "cost_summary": {
+          "period_days": 30,
+          "total_spent": 0.0,
+          "daily_average": 0.0,
+          "remaining_budget": {
+            "daily": 1.0,
+            "monthly": 20.0
+          },
+          "cost_breakdown_by_mode": {
+            "lightweight": 0.0,
+            "standard": 0.0,
+            "deep": 0.0
+          },
+          "projected_monthly_cost": 0.0,
+          "cost_trend": "stable",
+          "recommendations": [
+            "使用轻量模式可以显著降低成本",
+            "启用智能缓存可以减少重复处理成本"
+          ]
+        },
+        "status": "success"
+      }
+    },
+    {
+      "name": "performance_estimate_cost",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "project_id": 16,
+        "literature_count": 5,
+        "estimates_by_mode": {
+          "standard": {
+            "estimated_cost": 0.8300000000000001,
+            "estimated_time": 99,
+            "cost_breakdown": {
+              "ai_processing": 0.5775,
+              "pdf_processing": 0.12375,
+              "storage": 0.005,
+              "network": 0.04125000000000001,
+              "overhead": 0.08250000000000002,
+              "total": 0.8300000000000001
+            },
+            "optimization_suggestions": [
+              "当前处理成本较高，建议升级到基础版本或减少处理数量",
+              "启用智能缓存可以显著降低重复处理成本"
+            ]
+          }
+        },
+        "recommended_mode": "standard",
+        "cost_breakdown": {
+          "ai_processing": 0.5775,
+          "pdf_processing": 0.12375,
+          "storage": 0.005,
+          "network": 0.04125000000000001,
+          "overhead": 0.08250000000000002,
+          "total": 0.8300000000000001
+        },
+        "optimization_suggestions": [
+          "当前处理成本较高，建议升级到基础版本或减少处理数量",
+          "启用智能缓存可以显著降低重复处理成本"
+        ],
+        "budget_analysis": {
+          "daily_budget": 1.0,
+          "daily_used": 0.0,
+          "daily_remaining": 1.0,
+          "monthly_budget": 20.0,
+          "monthly_used": 0.0,
+          "monthly_remaining": 20.0,
+          "usage_trend": "stable",
+          "recommendations": [
+            "考虑使用轻量模式减少成本",
+            "启用缓存功能提高效率"
+          ]
+        }
+      }
+    },
+    {
+      "name": "project_cleanup",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": null
+    }
+  ],
+  "summary": {
+    "PASS": 8,
+    "FAIL": 0
+  },
+  "generated_at": 1758295028
+}

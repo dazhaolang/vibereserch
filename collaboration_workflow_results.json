@@ -1,0 +1,48 @@
+{
+  "base_url": "http://localhost:8000",
+  "results": [
+    {
+      "name": "login",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": null
+    },
+    {
+      "name": "project_create",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "id": 14,
+        "name": "Collab QA Project 1758293965",
+        "description": "Collaboration workflow test",
+        "research_direction": null,
+        "keywords": [],
+        "research_categories": null,
+        "status": "empty",
+        "literature_sources": null,
+        "max_literature_count": 1000,
+        "structure_template": null,
+        "extraction_prompts": null,
+        "owner_id": 37,
+        "created_at": "2025-09-19T14:59:25",
+        "updated_at": null,
+        "literature_count": 0,
+        "progress_percentage": null
+      }
+    },
+    {
+      "name": "workspace_create",
+      "ok": false,
+      "status_code": 422,
+      "detail": "{\"success\":false,\"message\":\"请求数据验证失败\",\"error_code\":\"VALIDATION_ERROR\",\"error_id\":\"ERR-20250919145925\",\"timestamp\":\"2025-09-19T14:59:25.871085+00:00\",\"path\":\"/api/collaborative-workspace/create\",\"detail\":{\"errors\":[{\"field\":\"body.workspace_name\",\"message\":\"Field required\",\"type\":\"missing\"}]}}",
+      "response": null
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 1
+  },
+  "generated_at": 1758293965
+}

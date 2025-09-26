@@ -1,0 +1,151 @@
+{
+  "base_url": "http://localhost:8000",
+  "results": [
+    {
+      "name": "login",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": null
+    },
+    {
+      "name": "performance_status",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "status": "degraded",
+        "overall_score": 47.25,
+        "cpu_score": 39.0,
+        "memory_score": 55.5,
+        "current_metrics": {
+          "cpu_usage": 61.0,
+          "memory_usage": 44.5,
+          "disk_usage": 66.17769293138845,
+          "network_bytes_sent": 12708528783,
+          "network_bytes_recv": 15790962980,
+          "process_count": 279,
+          "active_users_24h": 14,
+          "literature_processed_today": 0,
+          "active_projects_24h": 0
+        },
+        "performance_trends": {},
+        "optimization_suggestions": [],
+        "active_alerts": [],
+        "timestamp": "2025-09-19T15:00:08.746639"
+      }
+    },
+    {
+      "name": "performance_dashboard",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "system_health": {
+          "overall_score": 47.25,
+          "cpu_score": 39.0,
+          "memory_score": 55.5,
+          "throughput_score": 80.0,
+          "latency_score": 85.0,
+          "cost_efficiency_score": 90.0,
+          "timestamp": "2025-09-19T15:00:08.761153"
+        },
+        "current_metrics": {
+          "cpu_usage": 61.0,
+          "memory_usage": 44.5,
+          "disk_usage": 66.17769293138845,
+          "network_bytes_sent": 12708528783.0,
+          "network_bytes_recv": 15790962980.0,
+          "process_count": 279.0,
+          "active_users_24h": 14.0,
+          "literature_processed_today": 0.0,
+          "active_projects_24h": 0.0
+        },
+        "active_alerts": [],
+        "recent_optimizations": [],
+        "cost_analytics": {
+          "period_days": 30,
+          "total_spent": 0.0,
+          "daily_average": 0.0,
+          "remaining_budget": {
+            "daily": 1.0,
+            "monthly": 20.0
+          },
+          "cost_breakdown_by_mode": {
+            "lightweight": 0.0,
+            "standard": 0.0,
+            "deep": 0.0
+          },
+          "projected_monthly_cost": 0.0,
+          "cost_trend": "stable",
+          "recommendations": [
+            "使用轻量模式可以显著降低成本",
+            "启用智能缓存可以减少重复处理成本"
+          ]
+        },
+        "recommendations": [
+          "系统性能较低，建议错峰使用或联系技术支持",
+          "升级到付费版本可获得更高的处理限额和优先支持"
+        ]
+      }
+    },
+    {
+      "name": "performance_recommendations",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "user_id": 37,
+        "project_id": null,
+        "recommendations": [
+          "小批量处理建议使用深度模式获得更好的分析质量"
+        ],
+        "generated_at": "2025-09-19T15:00:08.797648",
+        "status": "success"
+      }
+    },
+    {
+      "name": "performance_cost_analytics",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "response": {
+        "user_id": 37,
+        "analytics_period": 30,
+        "cost_summary": {
+          "period_days": 30,
+          "total_spent": 0.0,
+          "daily_average": 0.0,
+          "remaining_budget": {
+            "daily": 1.0,
+            "monthly": 20.0
+          },
+          "cost_breakdown_by_mode": {
+            "lightweight": 0.0,
+            "standard": 0.0,
+            "deep": 0.0
+          },
+          "projected_monthly_cost": 0.0,
+          "cost_trend": "stable",
+          "recommendations": [
+            "使用轻量模式可以显著降低成本",
+            "启用智能缓存可以减少重复处理成本"
+          ]
+        },
+        "status": "success"
+      }
+    },
+    {
+      "name": "performance_estimate_cost",
+      "ok": false,
+      "status_code": 404,
+      "detail": "{\"success\":false,\"message\":\"项目不存在或无访问权限\",\"error_code\":\"HTTP_404\",\"error_id\":\"ERR-20250919150008\",\"timestamp\":\"2025-09-19T15:00:08.845724+00:00\",\"path\":\"/api/performance/estimate-cost\"}",
+      "response": null
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 1
+  },
+  "generated_at": 1758294008
+}

@@ -142,7 +142,7 @@ class TimePredictor:
         """预测文献采集时间"""
         
         literature_count = task_params.get("target_literature_count", 1000)
-        data_sources = task_params.get("data_sources", ["google_scholar"])
+        data_sources = task_params.get("data_sources", ["researchrabbit"])
         user_experience = task_params.get("user_experience_score", 0.5)
         
         # 基础时间计算
@@ -466,7 +466,7 @@ class RiskAssessor:
         
         data_quality = task_params.get("data_quality_score", 0.8)
         literature_count = task_params.get("literature_count", 1000)
-        data_sources = task_params.get("data_sources", ["google_scholar"])
+        data_sources = task_params.get("data_sources", ["researchrabbit"])
         
         risk_score = 0.0
         

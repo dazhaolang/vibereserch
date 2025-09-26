@@ -16,6 +16,7 @@ import psutil
 import threading
 
 from app.core.database import redis_client
+from app.core.metrics import MetricsBridge
 
 class PerformanceMetrics:
     """性能指标收集器"""
@@ -222,6 +223,14 @@ class PerformanceMonitorMiddleware(BaseHTTPMiddleware):
                 response.status_code,
                 response_time
             )
+
+            # 同时记录到Prometheus
+            MetricsBridge.record_request(
+                request.method,
+                request.url.path,
+                response.status_code,
+                response_time / 1000  # 转换为秒
+            )
             
             # 添加性能头部
             response.headers["X-Response-Time"] = f"{response_time:.2f}ms"
@@ -240,6 +249,14 @@ class PerformanceMonitorMiddleware(BaseHTTPMiddleware):
                 request.url.path,
                 500,
                 response_time
+            )
+
+            # 同时记录到Prometheus
+            MetricsBridge.record_request(
+                request.method,
+                request.url.path,
+                500,
+                response_time / 1000
             )
             
             logger.error(f"请求异常: {request.method} {request.url.path} [{request_id}] - {str(e)}")

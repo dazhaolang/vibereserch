@@ -19,11 +19,11 @@ from app.utils.async_limiter import AsyncLimiter
 @dataclass
 class ResearchRabbitConfig:
     """ResearchRabbit配置"""
-    username: str = "1842156241@qq.com"
-    password: str = "13933380482a"
-    base_url: str = "https://www.researchrabbitapp.com"
-    requests_per_minute: int = 30
-    max_retries: int = 3
+    username: Optional[str] = settings.researchrabbit_username
+    password: Optional[str] = settings.researchrabbit_password
+    base_url: str = settings.researchrabbit_base_url
+    requests_per_minute: int = settings.researchrabbit_requests_per_minute
+    max_retries: int = settings.researchrabbit_max_retries
 
 
 class ResearchRabbitClient:
@@ -80,36 +80,38 @@ class ResearchRabbitClient:
     
     async def login(self) -> bool:
         """登录获取访问令牌"""
+        if not self.config.username or not self.config.password:
+            raise RuntimeError(
+                "ResearchRabbit账号未配置。请在环境变量或设置中提供用户名和密码"
+            )
+
         try:
             login_data = {
                 "no_redirect": True,
                 "username": self.config.username,
                 "password": self.config.password
             }
-            
+
             async with self.session.post(
                 f"{self.config.base_url}/api/login",
                 json=login_data
             ) as response:
-                # 根据API文档，登录成功返回201状态码
                 if response.status == 201:
                     data = await response.json()
                     self.access_token = data.get("access")
                     self.refresh_token = data.get("refresh")
-                    
-                    # ResearchRabbit使用Cookie认证，不需要设置Authorization头
-                    # Cookie会自动通过cookie_jar管理
-                    
+
                     logger.info("ResearchRabbit登录成功")
                     return True
-                else:
-                    response_text = await response.text()
-                    logger.error(f"登录失败: {response.status} - {response_text}")
-                    return False
-                    
+
+                response_text = await response.text()
+                raise RuntimeError(
+                    f"ResearchRabbit登录失败: {response.status} - {response_text}"
+                )
+
         except Exception as e:
-            logger.error(f"登录异常: {e}")
-            return False
+            logger.error(f"ResearchRabbit登录异常: {e}")
+            raise
     
     async def search_papers(
         self, 

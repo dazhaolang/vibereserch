@@ -14,6 +14,7 @@ from app.models.user import User
 from app.models.project import Project
 from app.models.literature import Literature
 from app.core.exceptions import NotFoundError
+from app.services.task_service import TaskService
 
 router = APIRouter()
 
@@ -126,54 +127,28 @@ async def generate_experience(
                 "status": "skipped"
             }
         
-        # 启动后台经验生成任务
+        # 使用统一任务服务创建任务并调度
         try:
-            from app.tasks.celery_tasks import experience_generation_celery
-            from app.models.task import Task
-
-            # 创建任务记录
-            task_record = Task(
+            task_service = TaskService(db)
+            task = task_service.create_experience_task(
+                owner_id=current_user.id,
                 project_id=request.project_id,
-                task_type="experience_generation",
-                title="经验生成",
-                description=f"基于 {literature_count} 篇文献生成研究经验",
-                status="pending",
-                progress_percentage=0.0,
-                current_step="准备开始",
-                config={"processing_method": request.processing_method}
+                research_question=request.research_question or "通用研究问题",
+                processing_method=request.processing_method or "standard",
             )
-            db.add(task_record)
-            db.commit()
+        except Exception as exc:
+            logger.error(f"创建经验生成任务失败: {exc}")
+            raise HTTPException(status_code=500, detail="经验生成任务启动失败")
 
-            # 启动Celery任务
-            celery_task = experience_generation_celery.delay(
-                task_record.id,
-                request.research_question or "通用研究问题"
-            )
-
-            return {
-                "success": True,
-                "message": "经验生成任务已启动",
-                "project_id": request.project_id,
-                "literature_count": literature_count,
-                "task_id": task_record.id,
-                "celery_task_id": celery_task.id,
-                "status": "processing",
-                "processing_method": request.processing_method
-            }
-
-        except Exception as e:
-            logger.error(f"启动经验生成任务失败: {e}")
-            # 如果任务启动失败，返回测试结果
-            return {
-                "success": True,
-                "message": "经验生成功能测试成功（任务启动失败，回退到测试模式）",
-                "project_id": request.project_id,
-                "literature_count": literature_count,
-                "status": "completed",
-                "processing_method": request.processing_method,
-                "error": str(e)
-            }
+        return {
+            "success": True,
+            "message": "经验生成任务已启动",
+            "project_id": request.project_id,
+            "literature_count": literature_count,
+            "task_id": task.id,
+            "status": "processing",
+            "processing_method": request.processing_method or "standard",
+        }
         
     except HTTPException:
         raise

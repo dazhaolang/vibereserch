@@ -1,0 +1,40 @@
+.previewPlaceholder {
+  margin-top: 12px;
+}
+
+.previewContainer {
+  margin-top: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.previewContainer canvas.react-pdf__Page__canvas {
+  border-radius: 8px;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pageInfo {
+  font-size: 0.85rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.zoomControl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.zoomControl span {
+  font-size: 0.8rem;
+  color: rgba(148, 163, 184, 0.85);
+}

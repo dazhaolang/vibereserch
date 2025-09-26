@@ -5,7 +5,8 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from datetime import datetime
 import asyncio
 
 from app.core.database import get_db
@@ -14,6 +15,15 @@ from app.models.user import User
 from app.models.task import Task, TaskProgress, TaskType, TaskStatus
 from app.services.enhanced_progress_service import enhanced_progress_service
 from app.services.stream_progress_service import stream_progress_service
+from app.services.task_service import TaskService
+from app.schemas.task_schemas import (
+    TaskDetailResponse,
+    TaskListResponse,
+    TaskStatisticsResponse,
+    TaskCostSummary,
+    TaskStatusBreakdown,
+)
+from loguru import logger
 
 router = APIRouter()
 
@@ -37,7 +47,212 @@ class TaskProgressResponse(BaseModel):
     completed_at: Optional[str]
     progress_history: List[Dict[str, Any]]
 
-@router.post("/tasks/create")
+class TaskOverviewCostSummary(BaseModel):
+    total_cost: float = 0.0
+    estimated_remaining: float = 0.0
+    total_token_usage: float = 0.0
+
+
+class TaskOverviewResponse(BaseModel):
+    total_tasks: int
+    status_breakdown: Dict[str, int] = Field(default_factory=dict)
+    running_task_ids: List[int] = Field(default_factory=list)
+    cost_summary: TaskOverviewCostSummary
+    recent_tasks: List[TaskDetailResponse] = Field(default_factory=list)
+
+
+class TaskPerformanceMetricsResponse(BaseModel):
+    average_duration_seconds: float
+    success_rate: float
+    average_progress: float
+    running_tasks: int
+
+
+class TaskCostAnalysisResponse(BaseModel):
+    total_cost_estimate: float
+    average_cost_estimate: float
+    total_token_usage: float
+    model_breakdown: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+
+
+@router.get("/list", response_model=TaskListResponse)
+async def list_tasks(
+    project_id: Optional[int] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """列出当前用户的任务"""
+
+    status_enum: Optional[TaskStatus] = None
+    if status:
+        try:
+            status_enum = TaskStatus(status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"无效的任务状态: {status}")
+
+    service = TaskService(db)
+    tasks = service.list_tasks(
+        owner_id=current_user.id,
+        project_id=project_id,
+        status=status_enum,
+    )
+
+    return TaskListResponse(
+        tasks=[TaskDetailResponse.from_orm(task) for task in tasks]
+    )
+
+
+@router.get("/overview", response_model=TaskOverviewResponse)
+async def get_task_overview(
+    project_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """返回任务概览指标，供前端仪表盘使用"""
+
+    service = TaskService(db)
+    stats = service.get_task_statistics(
+        owner_id=current_user.id,
+        project_id=project_id,
+        limit_recent=5,
+    )
+
+    status_breakdown = {
+        item["status"]: item["count"]
+        for item in stats.get("status_breakdown", [])
+    }
+
+    recent_tasks = [
+        TaskDetailResponse.from_orm(task)
+        for task in stats.get("recent_tasks", [])
+    ]
+
+    cost_summary = stats.get("cost_summary", {})
+
+    return TaskOverviewResponse(
+        total_tasks=stats.get("total_tasks", 0),
+        status_breakdown=status_breakdown,
+        running_task_ids=stats.get("running_task_ids", []),
+        cost_summary=TaskOverviewCostSummary(
+            total_cost=cost_summary.get("total_cost_estimate", 0.0),
+            estimated_remaining=cost_summary.get("estimated_remaining", 0.0),
+            total_token_usage=cost_summary.get("total_token_usage", 0.0),
+        ),
+        recent_tasks=recent_tasks,
+    )
+
+
+@router.get("/statistics", response_model=TaskStatisticsResponse)
+async def get_task_statistics(
+    project_id: Optional[int] = None,
+    limit_recent: int = 5,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """返回任务统计详情"""
+
+    service = TaskService(db)
+    stats = service.get_task_statistics(
+        owner_id=current_user.id,
+        project_id=project_id,
+        limit_recent=limit_recent,
+    )
+
+    cost_summary = stats.get("cost_summary", {})
+    breakdown = [
+        TaskStatusBreakdown(status=item["status"], count=item["count"])
+        for item in stats.get("status_breakdown", [])
+    ]
+    recent = [TaskDetailResponse.from_orm(task) for task in stats.get("recent_tasks", [])]
+
+    return TaskStatisticsResponse(
+        total_tasks=stats.get("total_tasks", 0),
+        status_breakdown=breakdown,
+        running_tasks=stats.get("running_task_ids", []),
+        recent_tasks=recent,
+        cost_summary=TaskCostSummary(
+            total_token_usage=cost_summary.get("total_token_usage", 0.0),
+            total_cost_estimate=cost_summary.get("total_cost_estimate", 0.0),
+            models=cost_summary.get("models", {}),
+        ),
+    )
+
+
+@router.get("/performance_metrics", response_model=TaskPerformanceMetricsResponse)
+async def get_task_performance_metrics(
+    project_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """计算任务执行的性能指标"""
+
+    service = TaskService(db)
+    tasks = service.list_tasks(owner_id=current_user.id, project_id=project_id)
+
+    durations = [task.actual_duration for task in tasks if task.actual_duration]
+    average_duration = sum(durations) / len(durations) if durations else 0.0
+
+    completed = [task for task in tasks if task.status == TaskStatus.COMPLETED.value]
+    success_rate = len(completed) / len(tasks) if tasks else 0.0
+
+    average_progress = (
+        sum(task.progress_percentage for task in tasks) / len(tasks)
+        if tasks
+        else 0.0
+    )
+
+    running_tasks = len(
+        [
+            task
+            for task in tasks
+            if task.status in {TaskStatus.PENDING.value, TaskStatus.RUNNING.value}
+        ]
+    )
+
+    return TaskPerformanceMetricsResponse(
+        average_duration_seconds=average_duration,
+        success_rate=success_rate,
+        average_progress=average_progress,
+        running_tasks=running_tasks,
+    )
+
+
+@router.get("/cost_analysis", response_model=TaskCostAnalysisResponse)
+async def get_task_cost_analysis(
+    project_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """汇总任务成本信息，用于成本面板展示"""
+
+    service = TaskService(db)
+    tasks = service.list_tasks(owner_id=current_user.id, project_id=project_id)
+
+    total_cost = sum(task.cost_estimate or 0.0 for task in tasks)
+    total_tokens = sum(task.token_usage or 0.0 for task in tasks)
+    average_cost = total_cost / len(tasks) if tasks else 0.0
+
+    model_breakdown: Dict[str, Dict[str, float]] = {}
+    for task in tasks:
+        if not task.cost_breakdown:
+            continue
+        for model_name, metrics in task.cost_breakdown.items():
+            entry = model_breakdown.setdefault(
+                model_name,
+                {"total_tokens": 0.0, "cost": 0.0},
+            )
+            entry["total_tokens"] += metrics.get("total_tokens", 0.0) or 0.0
+            entry["cost"] += metrics.get("cost", 0.0) or 0.0
+
+    return TaskCostAnalysisResponse(
+        total_cost_estimate=total_cost,
+        average_cost_estimate=average_cost,
+        total_token_usage=total_tokens,
+        model_breakdown=model_breakdown,
+    )
+
+@router.post("/create")
 async def create_task(
     task_data: TaskCreateRequest,
     background_tasks: BackgroundTasks,
@@ -79,7 +294,7 @@ async def create_task(
         "estimated_duration": db_task.estimated_duration
     }
 
-@router.get("/tasks/{task_id}/progress", response_model=TaskProgressResponse)
+@router.get("/{task_id}/progress", response_model=TaskProgressResponse)
 async def get_task_progress(
     task_id: str,
     db: Session = Depends(get_db),
@@ -98,7 +313,7 @@ async def get_task_progress(
 
     return TaskProgressResponse(**task_progress)
 
-@router.get("/tasks/active")
+@router.get("/active")
 async def get_active_tasks(
     project_id: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -133,7 +348,7 @@ async def get_active_tasks(
         for task in active_tasks
     ]
 
-@router.post("/tasks/{task_id}/cancel")
+@router.post("/{task_id}/cancel")
 async def cancel_task(
     task_id: str,
     db: Session = Depends(get_db),

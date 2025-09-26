@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 from app.core.exceptions import ErrorFactory, AuthenticationError, ErrorCode
+from app.core.time_utils import utc_now
 
 # 密码加密上下文 - 优化性能：使用rounds=10平衡安全性和速度
 pwd_context = CryptContext(
@@ -38,21 +39,31 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """创建访问令牌"""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = utc_now() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-    
+        expire = utc_now() + timedelta(minutes=settings.access_token_expire_minutes)
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return encoded_jwt
 
 def verify_token(token: str) -> Optional[dict]:
-    """验证令牌"""
-    try:
-        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
-        return payload
-    except JWTError:
-        return None
+    """验证令牌，支持主密钥与备用密钥"""
+    last_error: Optional[JWTError] = None
+
+    for idx, secret_key in enumerate(settings.jwt_decode_keys):
+        try:
+            payload = jwt.decode(token, secret_key, algorithms=[settings.jwt_algorithm])
+            if idx > 0:
+                logger.warning("JWT 使用备用密钥完成验证 (index=%s)", idx)
+            return payload
+        except JWTError as exc:  # 记录最后一次错误，尝试下一把钥匙
+            last_error = exc
+            continue
+
+    if last_error:
+        logger.error("JWT 验证失败: %s", last_error)
+    return None
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -84,7 +95,7 @@ async def get_current_user(
             raise AuthenticationError(ErrorCode.USER_NOT_FOUND, f"用户不存在: {user_identifier}")
         
         # 更新最后登录时间
-        user.last_login = datetime.utcnow()
+        user.last_login = utc_now()
         db.commit()
         
         return user

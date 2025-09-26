@@ -1,0 +1,533 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "results": [
+    {
+      "name": "root",
+      "method": "GET",
+      "path": "/",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 5.611895001493394,
+      "detail": "",
+      "response_excerpt": "{\"message\": \"科研文献智能分析平台 2.2 - Claude Code + MCP集成版\", \"version\": \"2.2.0\", \"features\": [\"智能科研助手 - 深度文献问答\", \"知识图谱 - 实体关系可视化\", \"实时协作 - 多用户研究工作空间\", \"趋势分析 - 研究热点预测\", \"语义搜索 - 向量相似度匹配\", \"性能优化 - 大规模处理加速\", \"成本控"
+    },
+    {
+      "name": "openapi",
+      "method": "GET",
+      "path": "/openapi.json",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 190.09350301348604,
+      "detail": "",
+      "response_excerpt": "{\"openapi\": \"3.1.0\", \"info\": {\"title\": \"科研文献智能分析平台 - Claude Code + MCP集成版\", \"description\": \"\\n    基于AI的科研文献处理和经验增强平台 - 突破性功能版本 + Claude Code MCP集成\\n\\n    🚀 **突破性功能**:\\n    - 智能科研助手: 深度文献问答和研究假设生成\\n   "
+    },
+    {
+      "name": "docs",
+      "method": "GET",
+      "path": "/api/docs",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 3.994590981164947,
+      "detail": "",
+      "response_excerpt": "\n    <!DOCTYPE html>\n    <html>\n    <head>\n    <link type=\"text/css\" rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css\">\n    <link rel=\"shortcut icon\" href=\"https://"
+    },
+    {
+      "name": "health",
+      "method": "GET",
+      "path": "/health",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 4.808955010958016,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"healthy\", \"version\": \"2.2.0\", \"features_status\": {\"multi_model_ai\": \"active\", \"smart_assistant\": \"active\", \"knowledge_graph\": \"active\", \"collaborative_workspace\": \"active\", \"vector_search\""
+    },
+    {
+      "name": "healthz",
+      "method": "GET",
+      "path": "/healthz",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 17.386580002494156,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"healthy\", \"checked_at\": \"2025-09-19T16:35:04.240558\", \"timestamp\": \"2025-09-19T16:35:04.240738\"}"
+    },
+    {
+      "name": "readyz",
+      "method": "GET",
+      "path": "/readyz",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 3.2964109850581735,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"healthy\", \"checked_at\": \"2025-09-19T16:35:04.240558\", \"components\": [{\"name\": \"database\", \"status\": \"healthy\", \"latency_ms\": 4.68, \"details\": {\"connection\": \"active\", \"query_test\": \"passed"
+    },
+    {
+      "name": "live",
+      "method": "GET",
+      "path": "/live",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 2.6994810032192618,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"ok\", \"timestamp\": \"2025-09-19T16:35:04.247274\"}"
+    },
+    {
+      "name": "status",
+      "method": "GET",
+      "path": "/status",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 2.832094003679231,
+      "detail": "",
+      "response_excerpt": "{\"application\": {\"name\": \"VibResearch Platform\", \"version\": \"1.0.0\", \"status\": \"healthy\"}, \"health\": {\"status\": \"healthy\", \"checked_at\": \"2025-09-19T16:35:04.240558\", \"components\": [{\"name\": \"database"
+    },
+    {
+      "name": "info",
+      "method": "GET",
+      "path": "/info",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 2.732977009145543,
+      "detail": "",
+      "response_excerpt": "{\"application\": {\"name\": \"VibResearch Platform\", \"version\": \"1.0.0\", \"description\": \"科研文献智能分析平台\", \"environment\": \"development\"}, \"build\": {\"timestamp\": \"2025-09-18T17:00:00Z\", \"commit\": \"unknown\"}, \"f"
+    },
+    {
+      "name": "auth_register",
+      "method": "POST",
+      "path": "/api/auth/register",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 139.7100549947936,
+      "detail": "",
+      "response_excerpt": "{\"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MiIsImV4cCI6MTc1ODMyODUwNH0.n3znMvyGECWtu2bBqDcqk-7NB3UHyjkBAye7ouxx8qE\", \"token_type\": \"bearer\", \"expires_in\": 28800, \"user_info\": {"
+    },
+    {
+      "name": "auth_me",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 27.52471499843523,
+      "detail": "",
+      "response_excerpt": "{\"id\": 42, \"email\": \"qa_1758299704_92d11a@example.com\", \"username\": \"qa_runner_1758299704_92d11a\", \"full_name\": \"QA Automation\", \"institution\": \"QA Lab\", \"research_field\": \"Automation\", \"is_active\": t"
+    },
+    {
+      "name": "user_profile_get",
+      "method": "GET",
+      "path": "/api/user/profile",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 16.29183901241049,
+      "detail": "",
+      "response_excerpt": "{\"id\": 42, \"email\": \"qa_1758299704_92d11a@example.com\", \"username\": \"qa_runner_1758299704_92d11a\", \"full_name\": \"QA Automation\", \"institution\": \"QA Lab\", \"research_field\": \"Automation\", \"is_active\": t"
+    },
+    {
+      "name": "user_profile_update",
+      "method": "PUT",
+      "path": "/api/user/profile",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 25.145728985080495,
+      "detail": "",
+      "response_excerpt": "{\"success\": true, \"message\": \"用户资料更新成功\"}"
+    },
+    {
+      "name": "user_profile_refresh",
+      "method": "GET",
+      "path": "/api/user/profile",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 14.563179982360452,
+      "detail": "",
+      "response_excerpt": "{\"id\": 42, \"email\": \"qa_1758299704_92d11a@example.com\", \"username\": \"qa_runner_1758299704_92d11a\", \"full_name\": \"QA Runner 1758299704\", \"institution\": \"QA Lab\", \"research_field\": \"Automation\", \"is_act"
+    },
+    {
+      "name": "user_usage",
+      "method": "GET",
+      "path": "/api/user/usage-statistics",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 50.59747301856987,
+      "detail": "",
+      "response_excerpt": "{\"membership_type\": \"free\", \"usage\": {\"total_projects\": 0, \"total_literature\": 0, \"total_tasks\": 0, \"completed_tasks\": 0, \"monthly_literature_used\": 0, \"monthly_queries_used\": 0}, \"limits\": {\"literatu"
+    },
+    {
+      "name": "project_create",
+      "method": "POST",
+      "path": "/api/project/create-empty",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 38.07450499152765,
+      "detail": "",
+      "response_excerpt": "{\"id\": 17, \"name\": \"QA Smoke Project 1758299704\", \"description\": \"Automated smoke project\", \"research_direction\": null, \"keywords\": [], \"research_categories\": null, \"status\": \"empty\", \"literature_sour"
+    },
+    {
+      "name": "project_list",
+      "method": "GET",
+      "path": "/api/project/list",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 22.376717999577522,
+      "detail": "",
+      "response_excerpt": "[{\"id\": 17, \"name\": \"QA Smoke Project 1758299704\", \"description\": \"Automated smoke project\", \"research_direction\": null, \"keywords\": [], \"research_categories\": null, \"status\": \"empty\", \"literature_sou"
+    },
+    {
+      "name": "project_detail",
+      "method": "GET",
+      "path": "/api/project/17",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 19.430624990491197,
+      "detail": "",
+      "response_excerpt": "{\"id\": 17, \"name\": \"QA Smoke Project 1758299704\", \"description\": \"Automated smoke project\", \"research_direction\": null, \"keywords\": [], \"research_categories\": null, \"status\": \"empty\", \"literature_sour"
+    },
+    {
+      "name": "project_statistics",
+      "method": "GET",
+      "path": "/api/project/17/statistics",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 35.737179015995935,
+      "detail": "",
+      "response_excerpt": "{\"literature_count\": 0, \"experience_books_count\": 0, \"analysis_count\": 0, \"progress_percentage\": 5.0, \"task_count\": 0, \"active_tasks\": 0}"
+    },
+    {
+      "name": "project_tasks",
+      "method": "GET",
+      "path": "/api/project/17/tasks",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 17.501269991043955,
+      "detail": "",
+      "response_excerpt": "{\"tasks\": []}"
+    },
+    {
+      "name": "literature_processing_methods",
+      "method": "GET",
+      "path": "/api/literature/processing-methods",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 3.5376870073378086,
+      "detail": "",
+      "response_excerpt": "{\"success\": true, \"methods\": [{\"id\": \"fast_basic\", \"name\": \"快速处理\", \"description\": \"基础文本提取，1-2秒完成\", \"time_estimate\": \"1-2秒\", \"quality_score\": 60, \"features\": [\"基础文本提取\", \"快速完成\"], \"recommended_for\": [\"快速"
+    },
+    {
+      "name": "literature_statistics_v2",
+      "method": "GET",
+      "path": "/api/literature/statistics-v2",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 53.00668199197389,
+      "detail": "",
+      "response_excerpt": "{\"total_literature\": 0, \"processed_literature\": 0, \"processing_rate\": 0.0, \"pending_tasks\": 0, \"running_tasks\": 0, \"storage_saved\": {\"saved_files\": 0, \"saved_processing\": 0}}"
+    },
+    {
+      "name": "literature_user_library",
+      "method": "GET",
+      "path": "/api/literature/user-library",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 18.66196599439718,
+      "detail": "",
+      "response_excerpt": "{\"success\": true, \"literature\": [], \"total_count\": 0, \"has_more\": false}"
+    },
+    {
+      "name": "literature_list",
+      "method": "GET",
+      "path": "/api/literature/",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 30.99209800711833,
+      "detail": "",
+      "response_excerpt": "[]"
+    },
+    {
+      "name": "literature_project",
+      "method": "GET",
+      "path": "/api/literature/project/17",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 23.13020100700669,
+      "detail": "",
+      "response_excerpt": "[]"
+    },
+    {
+      "name": "literature_project_stats",
+      "method": "GET",
+      "path": "/api/literature/project/17/statistics",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 43.25396500644274,
+      "detail": "",
+      "response_excerpt": "{\"total_literature\": 0, \"processed_literature\": 0, \"processing_rate\": 0.0, \"total_segments\": 0, \"unprocessed_literature\": 0, \"storage_saved\": {\"year_distribution\": [], \"top_journals\": []}}"
+    },
+    {
+      "name": "task_list",
+      "method": "GET",
+      "path": "/api/task/",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 20.832886977586895,
+      "detail": "",
+      "response_excerpt": "{\"tasks\": []}"
+    },
+    {
+      "name": "task_statistics",
+      "method": "GET",
+      "path": "/api/task/stats",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 17.199399997480214,
+      "detail": "",
+      "response_excerpt": "{\"total_tasks\": 0, \"status_breakdown\": [], \"running_tasks\": [], \"recent_tasks\": [], \"cost_summary\": {\"total_token_usage\": 0.0, \"total_cost_estimate\": 0.0, \"models\": {}}}"
+    },
+    {
+      "name": "tasks_list",
+      "method": "GET",
+      "path": "/api/tasks/list",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 15.902015991741791,
+      "detail": "",
+      "response_excerpt": "{\"tasks\": []}"
+    },
+    {
+      "name": "tasks_overview",
+      "method": "GET",
+      "path": "/api/tasks/overview",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 17.577832972165197,
+      "detail": "",
+      "response_excerpt": "{\"total_tasks\": 0, \"status_breakdown\": {}, \"running_task_ids\": [], \"cost_summary\": {\"total_cost\": 0.0, \"estimated_remaining\": 0.0, \"total_token_usage\": 0.0}, \"recent_tasks\": []}"
+    },
+    {
+      "name": "tasks_statistics",
+      "method": "GET",
+      "path": "/api/tasks/statistics",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 19.465646997559816,
+      "detail": "",
+      "response_excerpt": "{\"total_tasks\": 0, \"status_breakdown\": [], \"running_tasks\": [], \"recent_tasks\": [], \"cost_summary\": {\"total_token_usage\": 0.0, \"total_cost_estimate\": 0.0, \"models\": {}}}"
+    },
+    {
+      "name": "tasks_performance",
+      "method": "GET",
+      "path": "/api/tasks/performance_metrics",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 16.412423981819302,
+      "detail": "",
+      "response_excerpt": "{\"average_duration_seconds\": 0.0, \"success_rate\": 0.0, \"average_progress\": 0.0, \"running_tasks\": 0}"
+    },
+    {
+      "name": "monitor_overview",
+      "method": "GET",
+      "path": "/api/monitoring/metrics/overview",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 13.614702998893335,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"success\", \"data\": {\"total_endpoints\": 0, \"total_requests\": 0, \"total_errors\": 0, \"error_rate\": 0, \"avg_response_time\": 0, \"p95_response_time\": 0, \"p99_response_time\": 0, \"business_metrics\""
+    },
+    {
+      "name": "monitor_endpoint_stats",
+      "method": "GET",
+      "path": "/api/monitoring/metrics/endpoint-stats",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 13.385893980739638,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"success\", \"data\": {}}"
+    },
+    {
+      "name": "monitor_business_metrics",
+      "method": "GET",
+      "path": "/api/monitoring/metrics/business-metrics",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 16.588313010288402,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"success\", \"data\": [{\"date\": \"2025-09-13\", \"literature_processed\": 0, \"ai_requests\": 0, \"user_sessions\": 0, \"projects_created\": 0, \"exports_completed\": 0}, {\"date\": \"2025-09-14\", \"literatur"
+    },
+    {
+      "name": "monitor_system_health",
+      "method": "GET",
+      "path": "/api/monitoring/metrics/system-health",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 12.581689981743693,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"success\", \"data\": {\"health_score\": 90, \"status\": \"healthy\", \"color\": \"green\", \"issues\": [\"CPU使用率较高: 78.8%\"], \"system_metrics\": {\"cpu_percent\": 78.8, \"memory_percent\": 45.1, \"disk_usage\": 6"
+    },
+    {
+      "name": "monitor_performance_report",
+      "method": "GET",
+      "path": "/api/monitoring/metrics/performance-report",
+      "status": "WARN",
+      "status_code": 403,
+      "elapsed_ms": 17.225687013706192,
+      "detail": "",
+      "response_excerpt": "{\"success\": false, \"message\": \"权限不足\", \"error_code\": \"HTTP_403\", \"error_id\": \"ERR-20250919163505\", \"timestamp\": \"2025-09-19T16:35:05.017435+00:00\", \"path\": \"/api/monitoring/metrics/performance-report\"}"
+    },
+    {
+      "name": "monitor_slow_endpoints",
+      "method": "GET",
+      "path": "/api/monitoring/metrics/slow-endpoints",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 11.787241004640236,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"success\", \"data\": [], \"threshold_ms\": 1000.0}"
+    },
+    {
+      "name": "performance_status",
+      "method": "GET",
+      "path": "/api/performance/status",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 11.780500994063914,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"degraded\", \"overall_score\": 44.099999999999994, \"cpu_score\": 33.3, \"memory_score\": 54.9, \"current_metrics\": {\"cpu_usage\": 66.7, \"memory_usage\": 45.1, \"disk_usage\": 66.19400098894037, \"netw"
+    },
+    {
+      "name": "performance_dashboard",
+      "method": "GET",
+      "path": "/api/performance/dashboard",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 19.55059199826792,
+      "detail": "",
+      "response_excerpt": "{\"system_health\": {\"overall_score\": 44.099999999999994, \"cpu_score\": 33.3, \"memory_score\": 54.9, \"throughput_score\": 80.0, \"latency_score\": 85.0, \"cost_efficiency_score\": 90.0, \"timestamp\": \"2025-09-1"
+    },
+    {
+      "name": "performance_recommendations",
+      "method": "GET",
+      "path": "/api/performance/recommendations/optimization",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 19.577059982111678,
+      "detail": "",
+      "response_excerpt": "{\"user_id\": 42, \"project_id\": null, \"recommendations\": [\"小批量处理建议使用深度模式获得更好的分析质量\"], \"generated_at\": \"2025-09-19T16:35:05.076175\", \"status\": \"success\"}"
+    },
+    {
+      "name": "research_mode_rag",
+      "method": "POST",
+      "path": "/api/research/query",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 960.1082899898756,
+      "detail": "",
+      "response_excerpt": "{\"mode\": \"rag\", \"payload\": {\"answer\": \"抱歉，在当前项目中尚未找到可支撑该问题的结构化文献或主经验，请先运行搜索建库或上传文献。\", \"confidence\": 0.0, \"sources\": [], \"suggestions\": [\"执行搜索建库任务\", \"上传相关PDF/DOI或导入Zotero库\"]}}"
+    },
+    {
+      "name": "research_mode_deep",
+      "method": "POST",
+      "path": "/api/research/query",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 91.37872402789071,
+      "detail": "",
+      "response_excerpt": "{\"mode\": \"deep\", \"payload\": {\"message\": \"深度研究任务已启动，经验生成完成后再进行问答\", \"task_id\": 7}}"
+    },
+    {
+      "name": "research_mode_auto",
+      "method": "POST",
+      "path": "/api/research/query",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 40.96576999290846,
+      "detail": "",
+      "response_excerpt": "{\"mode\": \"auto\", \"payload\": {\"message\": \"已启动全自动研究任务链，可在任务中心查看进度\", \"tasks\": [{\"task_id\": 8, \"type\": \"search_and_build_library\", \"status\": \"pending\", \"title\": \"搜索建库流水线\", \"description\": \"执行搜索、下载、清洗与入库\"},"
+    },
+    {
+      "name": "research_analysis",
+      "method": "POST",
+      "path": "/api/research/analysis",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 77.59043099940754,
+      "detail": "",
+      "response_excerpt": "{\"recommended_mode\": \"rag\", \"sub_questions\": [\"自动化验证研究模式\"], \"complexity_score\": 0.5, \"estimated_resources\": {\"time\": \"未知\", \"tokens\": \"未知\", \"literature_count\": \"5-10\"}, \"reasoning\": \"分析过程中出现错误: 'Projec"
+    },
+    {
+      "name": "integration_capabilities",
+      "method": "GET",
+      "path": "/api/integration/claude-code/capabilities",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 3.679112996906042,
+      "detail": "",
+      "response_excerpt": "{\"system_name\": \"Claude Code + MCP 智能工具编排系统\", \"version\": \"1.0.0\", \"description\": \"基于Claude Code的智能AI工具编排和MCP协议集成\", \"capabilities\": {\"intelligent_orchestration\": {\"description\": \"智能工具编排\", \"features\": ["
+    },
+    {
+      "name": "smart_assistant_capabilities",
+      "method": "GET",
+      "path": "/api/smart-assistant/capabilities",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 2.478673995938152,
+      "detail": "",
+      "response_excerpt": "{\"capabilities\": [{\"name\": \"智能问答\", \"description\": \"基于多篇文献回答复杂研究问题\", \"features\": [\"语义相似度文献选择\", \"跨文献证据整合\", \"置信度评估\", \"研究建议生成\"]}, {\"name\": \"假设生成\", \"description\": \"自动识别研究空白并生成创新假设\", \"features\": [\"文献空白识别\", "
+    },
+    {
+      "name": "knowledge_graph_entity_types",
+      "method": "GET",
+      "path": "/api/knowledge-graph/entity-types",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 1.9717460090760142,
+      "detail": "",
+      "response_excerpt": "{\"entity_types\": [{\"type\": \"authors\", \"description\": \"作者和研究者\", \"extraction_methods\": [\"文献元数据\", \"AI识别\"]}, {\"type\": \"concepts\", \"description\": \"研究概念和理论\", \"extraction_methods\": [\"关键词提取\", \"语义分析\"]}, {\"type"
+    },
+    {
+      "name": "knowledge_graph_capabilities",
+      "method": "GET",
+      "path": "/api/knowledge-graph/analysis-capabilities",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 1.8175920122303069,
+      "detail": "",
+      "response_excerpt": "{\"knowledge_graph_analysis\": {\"capabilities\": [\"多类型实体提取\", \"语义关系识别\", \"图谱结构分析\", \"中心性计算\", \"社区发现\", \"路径分析\"], \"metrics\": [\"节点度中心性\", \"介数中心性\", \"接近中心性\", \"聚类系数\", \"网络密度\", \"连通性\"]}, \"citation_network_analysis\": {\""
+    },
+    {
+      "name": "collab_features",
+      "method": "GET",
+      "path": "/api/collaborative-workspace/features",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 1.783867017365992,
+      "detail": "",
+      "response_excerpt": "{\"real_time_collaboration\": {\"description\": \"实时多用户协作研究\", \"features\": [\"实时用户状态同步\", \"多人同时在线编辑\", \"即时消息通知\", \"活动状态跟踪\"]}, \"intelligent_annotations\": {\"description\": \"AI辅助的智能注释系统\", \"features\": [\"AI增强注释理解\", \""
+    },
+    {
+      "name": "mcp_tools",
+      "method": "GET",
+      "path": "/api/mcp/tools",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 1.9980970246251673,
+      "detail": "",
+      "response_excerpt": "{\"tools\": [{\"name\": \"collect_literature\", \"description\": \"采集科研文献，可选择普通或AI批量搜索模式\", \"input_schema\": {\"type\": \"object\", \"properties\": {\"project_id\": {\"type\": \"integer\"}, \"user_id\": {\"type\": \"integer\"}, \""
+    },
+    {
+      "name": "project_delete",
+      "method": "DELETE",
+      "path": "/api/project/17",
+      "status": "FAIL",
+      "status_code": 400,
+      "elapsed_ms": 19.211797014577314,
+      "detail": "unexpected status 400",
+      "response_excerpt": "{\"success\": false, \"message\": \"项目仍有未完成的任务，请先取消或等待完成\", \"error_code\": \"HTTP_400\", \"error_id\": \"ERR-20250919163506\", \"timestamp\": \"2025-09-19T16:35:06.285281+00:00\", \"path\": \"/api/project/17\"}"
+    }
+  ],
+  "summary": {
+    "PASS": 50,
+    "WARN": 1,
+    "FAIL": 1,
+    "ERROR": 0,
+    "SKIP": 0
+  },
+  "generated_at": 1758299706
+}

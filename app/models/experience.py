@@ -2,7 +2,18 @@
 经验书和主经验相关数据模型 - MySQL版本
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, DECIMAL, Float, ForeignKey, Boolean
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Text,
+    JSON,
+    DECIMAL,
+    Float,
+    ForeignKey,
+    Boolean,
+)
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -47,37 +58,43 @@ class ExperienceBook(Base):
 
 class MainExperience(Base):
     __tablename__ = "main_experiences"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    
+
     # 基础信息
     title = Column(String(500), nullable=False)
     research_domain = Column(String(200))  # 研究领域
     coverage_scope = Column(JSON)  # 覆盖范围（如制备方法列表）
-    
+    experience_type = Column(String(100), index=True)  # 经验类别：制备/表征/性能等
+
     # 内容
     content = Column(Text, nullable=False)
     structured_knowledge = Column(JSON)  # 结构化知识表示
     methodology_summary = Column(JSON)  # 方法论总结
-    
+    key_findings = Column(JSON)  # 关键发现
+    practical_guidelines = Column(JSON)  # 实用指南/最佳实践
+
     # 统计信息
     source_literature_count = Column(Integer, default=0)
+    literature_count = Column(Integer, default=0)
     last_update_round = Column(Integer, default=0)
     usage_count = Column(Integer, default=0)  # 被调用次数
-    
+
     # 质量指标
     completeness_score = Column(Float)  # 完整性评分
     accuracy_score = Column(Float)  # 准确性评分
     usefulness_score = Column(Float)  # 实用性评分
-    
+    quality_score = Column(Float)  # 综合质量评分
+
     # 版本控制
     version = Column(String(20), default="1.0")
     is_current = Column(Boolean, default=True)
-    
+    status = Column(String(50), default="active", index=True)  # active/archived
+
     # 向量嵌入已移动到Elasticsearch
     # content_embedding = 在ES中存储
-    
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

@@ -7,9 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import os
+from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.core.database import engine, Base, init_database
+from app.core.database import init_database
 from app.api import (
     auth,
     literature,
@@ -31,23 +32,211 @@ from app.api import (
     performance_optimization,  # 新增性能优化API
     claude_code_integration,  # 新增Claude Code集成API
     enhanced_tasks,  # 新增增强任务进度追踪API
-    intelligent_interaction  # 新增智能交互API
+    intelligent_interaction,  # 新增智能交互API
+    health_router  # 新增健康检查路由
 )
-from app.api.literature_fixed import fixed_router
 from app.services.multi_model_coordinator import multi_model_coordinator, DEFAULT_MODEL_CONFIGS
+from app.services.mcp_tool_setup import setup_mcp_tools
 from app.middleware.performance_monitor import PerformanceMonitorMiddleware
 from app.middleware.timeout_middleware import TimeoutMiddleware
-from app.core.exceptions import setup_exception_handlers
+from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.core.error_handlers import register_error_handlers
+from app.core.redis import redis_manager
 
-# 数据库表初始化（异步处理，避免启动阻塞）
-async def init_database():
-    """异步初始化数据库表"""
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+
+
+def _env_enabled(name: str, default: bool = True) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in _TRUE_VALUES
+
+
+LIGHTWEIGHT_MODE = _env_enabled("LIGHTWEIGHT_MODE", default=False)
+ENABLE_ELASTICSEARCH = _env_enabled("ENABLE_ELASTICSEARCH", default=True)
+ENABLE_MULTI_MODEL = _env_enabled("ENABLE_MULTI_MODEL", default=True)
+ENABLE_PERFORMANCE_MONITOR = _env_enabled("ENABLE_PERFORMANCE_MONITOR", default=True)
+ENABLE_CLAUDE_MCP = _env_enabled("ENABLE_CLAUDE_MCP", default=True)
+
+# 应用生命周期管理，替换弃用的 on_event 钩子
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    redis_connected = False
+    es_initialized = False
+    workers_started = False
+    performance_started = False
+    claude_client_started = False
+
     try:
-        Base.metadata.create_all(bind=engine)
-        print("✅ 数据库表创建成功")
+        # 异步初始化数据库
+        await init_database()
+        print("数据库初始化完成")
+
+        try:
+            setup_mcp_tools()
+            print("MCP工具注册完成")
+        except Exception as exc:  # noqa: BLE001
+            print(f"MCP工具注册警告: {exc}")
+
+        if LIGHTWEIGHT_MODE:
+            print("⚙️ 轻量模式启用: 跳过 Redis / Elasticsearch / AI 协调器等重型初始化")
+        else:
+            # 初始化Redis连接
+            try:
+                await redis_manager.connect()
+                redis_connected = redis_manager.is_connected
+                print("Redis连接初始化完成")
+            except Exception as e:
+                print(f"Redis初始化警告: {e} - 继续运行但缓存功能受限")
+
+            # 初始化Elasticsearch连接和索引
+            if ENABLE_ELASTICSEARCH:
+                try:
+                    from app.core.elasticsearch import get_elasticsearch
+
+                    es_client_instance = await get_elasticsearch()
+                    es_initialized = True
+                    print("Elasticsearch连接初始化完成")
+
+                    from scripts.init_elasticsearch_indices import create_indices
+
+                    await create_indices()
+                    print("Elasticsearch索引初始化完成")
+
+                except Exception as e:
+                    print(f"Elasticsearch初始化失败: {e}")
+            else:
+                print("⚠️ ENABLE_ELASTICSEARCH=false → 跳过 Elasticsearch 初始化")
+
+            # 启动多模型协调器
+            if ENABLE_MULTI_MODEL:
+                try:
+                    multi_model_coordinator.initialize_models(DEFAULT_MODEL_CONFIGS)
+                    await multi_model_coordinator.start_workers(num_workers=3)
+                    workers_started = True
+                    print("多模型协调器初始化完成")
+                except Exception as e:
+                    print(f"多模型协调器启动警告: {e}")
+            else:
+                print("⚠️ ENABLE_MULTI_MODEL=false → 不启动多模型协调器")
+
+            # 启动性能监控系统
+            if ENABLE_PERFORMANCE_MONITOR:
+                try:
+                    from app.services.performance_monitor import start_performance_monitoring
+
+                    await start_performance_monitoring()
+                    performance_started = True
+                    print("性能监控系统启动完成")
+                except Exception as e:
+                    print(f"性能监控启动警告: {e}")
+            else:
+                print("⚠️ ENABLE_PERFORMANCE_MONITOR=false → 跳过性能监控启动")
+
+            # 初始化Claude Code MCP客户端
+            if ENABLE_CLAUDE_MCP:
+                try:
+                    from app.services.claude_code_mcp_client import initialize_claude_code_client
+
+                    await initialize_claude_code_client(api_key=settings.claude_code_api_key)
+                    claude_client_started = True
+                    print("Claude Code MCP客户端初始化完成")
+                except Exception as e:
+                    print(f"Claude Code MCP客户端初始化警告: {e}")
+            else:
+                print("⚠️ ENABLE_CLAUDE_MCP=false → 跳过 Claude Code MCP 客户端初始化")
+
+            # 初始化WebSocket广播集成
+            from app.api.websocket import broadcast_progress_event
+            from app.services.stream_progress_service import stream_progress_service
+            stream_progress_service.websocket_broadcast = broadcast_progress_event
+            print("WebSocket广播系统集成完成")
+
+            # 初始化突破性功能服务
+            from app.services.smart_research_assistant import smart_research_assistant
+            from app.services.knowledge_graph_service import knowledge_graph_service
+            from app.services.collaborative_workspace import collaborative_workspace
+            print("突破性功能服务初始化完成")
+
+            print("🎉 完整增强系统启动完成！")
+            print("🚀 突破性功能已激活:")
+            print("   - 智能科研助手")
+            print("   - 知识图谱分析")
+            print("   - 实时协作工作空间")
+            print("   - 语义搜索引擎")
+            print("   - 多模型AI协调")
+            print("⚡ 性能优化功能已激活:")
+            print("   - 大规模处理优化 (200-500篇)")
+            print("   - 三模式成本控制")
+            print("   - 实时性能监控")
+            print("   - 智能批处理优化")
+            print("   - 透明成本管理")
+            print("🎭 Claude Code + MCP集成已激活:")
+            print("   - 智能工具编排")
+            print("   - MCP协议标准化")
+            print("   - 端到端工作流")
+            print("   - 实时进度跟踪")
+            print("   - 自动降级机制")
+
     except Exception as e:
-        print(f"⚠️ 数据库表创建警告: {e}")
-        # 不阻塞启动，允许服务继续运行
+        print(f"启动失败: {e}")
+        import traceback
+        traceback.print_exc()
+
+    try:
+        yield
+    finally:
+        try:
+            if not LIGHTWEIGHT_MODE:
+                # 关闭Redis连接
+                if redis_connected:
+                    try:
+                        await redis_manager.disconnect()
+                        print("Redis连接已关闭")
+                    except Exception as e:
+                        print(f"Redis关闭警告: {e}")
+
+                # 关闭Elasticsearch连接
+                if es_initialized:
+                    try:
+                        from app.core.elasticsearch import es_client
+                        await es_client.close()
+                        print("Elasticsearch连接已关闭")
+                    except Exception as e:
+                        print(f"Elasticsearch关闭警告: {e}")
+
+                # 停止性能监控
+                if performance_started:
+                    try:
+                        from app.services.performance_monitor import stop_performance_monitoring
+                        await stop_performance_monitoring()
+                        print("性能监控系统已关闭")
+                    except Exception as e:
+                        print(f"性能监控关闭警告: {e}")
+
+                # 停止Claude Code MCP客户端
+                if claude_client_started:
+                    try:
+                        from app.services.claude_code_mcp_client import shutdown_claude_code_client
+                        await shutdown_claude_code_client()
+                        print("Claude Code MCP客户端已关闭")
+                    except Exception as e:
+                        print(f"Claude Code MCP客户端关闭警告: {e}")
+
+                if workers_started:
+                    await multi_model_coordinator.stop_workers()
+                    print("多模型协调器已关闭")
+
+                # 清理协作工作空间连接
+                from app.services.collaborative_workspace import collaborative_workspace
+                collaborative_workspace.active_workspaces.clear()
+                collaborative_workspace.user_connections.clear()
+                print("协作工作空间已清理")
+
+        except Exception as e:
+            print(f"关闭服务时出错: {e}")
+
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -94,8 +283,12 @@ app = FastAPI(
     """,
     version="2.2.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    redoc_url="/api/redoc",
+    lifespan=lifespan
 )
+
+# 安全头中间件 (最高优先级)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS中间件配置
 # API超时保护中间件 (需要在CORS之前)
@@ -105,12 +298,18 @@ app.add_middleware(TimeoutMiddleware, timeout=15)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://localhost",
+        "https://localhost",
+        "http://127.0.0.1",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "http://38.175.215.61:3000",
-        "https://38.175.215.61:3000",
-        "http://38.175.215.61",
-        "https://38.175.215.61"
+        "http://localhost:3002",
+        "http://127.0.0.1:3002",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://154.12.50.153",
+        "http://154.12.50.153:3000",
+        "http://154.12.50.153:5173",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -120,8 +319,8 @@ app.add_middleware(
 # 性能监控中间件 - 暂时禁用用于测试
 # app.add_middleware(PerformanceMonitorMiddleware)
 
-# 设置统一异常处理
-setup_exception_handlers(app)
+# 注册错误处理器
+register_error_handlers(app)
 
 # 静态文件服务
 os.makedirs("uploads", exist_ok=True)
@@ -134,7 +333,6 @@ app.include_router(project.router, prefix="/api/project", tags=["项目"])
 app.include_router(task.router, prefix="/api/task", tags=["任务"])
 app.include_router(enhanced_tasks.router, prefix="/api/tasks", tags=["📊 增强任务进度追踪"])
 app.include_router(literature.router, prefix="/api/literature", tags=["文献"])
-app.include_router(fixed_router, prefix="/api/literature", tags=["文献修复"])
 app.include_router(literature_citations.router, prefix="/api/literature", tags=["文献引用"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["分析"])
 app.include_router(research_direction.router, prefix="/api/research", tags=["研究方向"])
@@ -144,6 +342,9 @@ app.include_router(batch_operations.router, prefix="/api/batch", tags=["批量�
 app.include_router(monitoring.router, prefix="/api/monitoring", tags=["监控"])
 app.include_router(websocket.router, tags=["WebSocket"])
 app.include_router(intelligent_template.router, prefix="/api/template", tags=["智能模板"])
+
+# 注册健康检查路由（无前缀，直接在根路径）
+app.include_router(health_router.router, tags=["🏥 健康检查"])
 
 # 注册智能交互路由
 app.include_router(intelligent_interaction.router, tags=["🤖 智能交互机制"])
@@ -158,6 +359,13 @@ app.include_router(performance_optimization.router, prefix="/api/performance", t
 
 # 注册Claude Code + MCP集成路由
 app.include_router(claude_code_integration.router, prefix="/api/integration", tags=["🎭 Claude Code + MCP"])
+
+# 注册MCP工具路由
+from app.api.mcp import router as mcp_router
+from app.api.research import router as research_router
+
+app.include_router(mcp_router, prefix="/api/mcp", tags=["🧰 MCP 工具"])
+app.include_router(research_router, prefix="/api/research", tags=["🔍 研究模式"])
 
 @app.get("/")
 async def root():
@@ -409,127 +617,6 @@ async def get_system_capabilities():
             "claude_code_orchestration": "智能工具选择，30%效率提升"
         }
     }
-
-@app.on_event("startup")
-async def startup_event():
-    """应用启动时初始化完整系统"""
-    try:
-        # 异步初始化数据库
-        await init_database()
-        print("数据库初始化完成")
-
-        # 初始化Elasticsearch连接和索引
-        try:
-            from app.core.elasticsearch import get_elasticsearch
-            es_client = await get_elasticsearch()
-            print("Elasticsearch连接初始化完成")
-
-            # 创建ES索引（如果不存在）
-            from scripts.init_elasticsearch_indices import create_indices
-            await create_indices()
-            print("Elasticsearch索引初始化完成")
-
-        except Exception as e:
-            print(f"Elasticsearch初始化失败: {e}")
-            # 注意：ES失败不应阻止应用启动，但会影响搜索功能
-
-        # 启动多模型协调器
-        multi_model_coordinator.initialize_models(DEFAULT_MODEL_CONFIGS)
-        await multi_model_coordinator.start_workers(num_workers=3)
-        print("多模型协调器初始化完成")
-
-        # 启动性能监控系统
-        try:
-            from app.services.performance_monitor import start_performance_monitoring
-            await start_performance_monitoring()
-            print("性能监控系统启动完成")
-        except Exception as e:
-            print(f"性能监控启动警告: {e}")
-
-        # 初始化Claude Code MCP客户端
-        try:
-            from app.services.claude_code_mcp_client import initialize_claude_code_client
-            await initialize_claude_code_client(api_key=settings.claude_code_api_key)
-            print("Claude Code MCP客户端初始化完成")
-        except Exception as e:
-            print(f"Claude Code MCP客户端初始化警告: {e}")
-
-        # 初始化WebSocket广播集成
-        from app.api.websocket import broadcast_progress_event
-        from app.services.stream_progress_service import stream_progress_service
-        stream_progress_service.websocket_broadcast = broadcast_progress_event
-        print("WebSocket广播系统集成完成")
-
-        # 初始化突破性功能服务
-        from app.services.smart_research_assistant import smart_research_assistant
-        from app.services.knowledge_graph_service import knowledge_graph_service
-        from app.services.collaborative_workspace import collaborative_workspace
-        print("突破性功能服务初始化完成")
-
-        print("🎉 完整增强系统启动完成！")
-        print("🚀 突破性功能已激活:")
-        print("   - 智能科研助手")
-        print("   - 知识图谱分析")
-        print("   - 实时协作工作空间")
-        print("   - 语义搜索引擎")
-        print("   - 多模型AI协调")
-        print("⚡ 性能优化功能已激活:")
-        print("   - 大规模处理优化 (200-500篇)")
-        print("   - 三模式成本控制")
-        print("   - 实时性能监控")
-        print("   - 智能批处理优化")
-        print("   - 透明成本管理")
-        print("🎭 Claude Code + MCP集成已激活:")
-        print("   - 智能工具编排")
-        print("   - MCP协议标准化")
-        print("   - 端到端工作流")
-        print("   - 实时进度跟踪")
-        print("   - 自动降级机制")
-
-    except Exception as e:
-        print(f"启动失败: {e}")
-        import traceback
-        traceback.print_exc()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """应用关闭时清理资源"""
-    try:
-        # 关闭Elasticsearch连接
-        try:
-            from app.core.elasticsearch import es_client
-            await es_client.close()
-            print("Elasticsearch连接已关闭")
-        except Exception as e:
-            print(f"Elasticsearch关闭警告: {e}")
-
-        # 停止性能监控
-        try:
-            from app.services.performance_monitor import stop_performance_monitoring
-            await stop_performance_monitoring()
-            print("性能监控系统已关闭")
-        except Exception as e:
-            print(f"性能监控关闭警告: {e}")
-
-        # 停止Claude Code MCP客户端
-        try:
-            from app.services.claude_code_mcp_client import shutdown_claude_code_client
-            await shutdown_claude_code_client()
-            print("Claude Code MCP客户端已关闭")
-        except Exception as e:
-            print(f"Claude Code MCP客户端关闭警告: {e}")
-
-        await multi_model_coordinator.stop_workers()
-        print("多模型协调器已关闭")
-
-        # 清理协作工作空间连接
-        from app.services.collaborative_workspace import collaborative_workspace
-        collaborative_workspace.active_workspaces.clear()
-        collaborative_workspace.user_connections.clear()
-        print("协作工作空间已清理")
-
-    except Exception as e:
-        print(f"关闭服务时出错: {e}")
 
 if __name__ == "__main__":
     uvicorn.run(

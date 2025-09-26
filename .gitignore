@@ -75,9 +75,14 @@ Thumbs.db
 *.log
 logs/
 
+# Frontend dependencies
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-error.log*
+
 # Database
 *.db
-*.sqlite3
 
 # Temporary files
 *.tmp
@@ -90,3 +95,4 @@ dump.rdb
 # Celery
 celerybeat-schedule
 celerybeat.pid
+libs/zotero-web-library/

@@ -13,8 +13,6 @@ import hashlib
 from typing import List, Dict, Optional, Any, Tuple, Callable
 from datetime import datetime
 from pathlib import Path
-from dataclasses import dataclass
-from enum import Enum
 import aiohttp
 import aiofiles
 from loguru import logger
@@ -32,62 +30,32 @@ from app.services.pdf_processor import PDFProcessor
 from app.services.lightweight_structuring_service import LightweightStructuringService
 from app.services.ai_service import AIService
 from app.services.semantic_chunker import create_semantic_chunker
+from app.services.data_sync_service import DataSyncService
+from app.services.search_pipeline import (
+    ProcessingStage,
+    ProcessingConfig,
+    ProcessingStats,
+    LiteratureItem,
+)
+from app.services.search_pipeline.progress import emit_progress
 
 
-class ProcessingStage(Enum):
-    """处理阶段枚举"""
-    INITIALIZATION = "initialization"
-    SEARCH = "search"
-    AI_FILTERING = "ai_filtering"
-    PDF_DOWNLOAD = "pdf_download"
-    CONTENT_EXTRACTION = "content_extraction"
-    STRUCTURE_PROCESSING = "structure_processing"
-    DATABASE_INGESTION = "database_ingestion"
-    CLEANUP = "cleanup"
-    COMPLETED = "completed"
+_SEMANTIC_SOURCE_KEYS = {
+    None,
+    "",
+    "researchrabbit",
+    "research_rabbit",
+    "semantic",
+    "semantic_scholar",
+    "ai_search",
+}
 
 
-@dataclass
-class ProcessingConfig:
-    """处理配置"""
-    batch_size: int = 10  # 批处理大小
-    max_concurrent_downloads: int = 5  # 最大并发下载数
-    max_concurrent_ai_calls: int = 3  # 最大并发AI调用数
-    enable_ai_filtering: bool = True  # 启用AI筛选
-    enable_pdf_processing: bool = True  # 启用PDF处理
-    enable_structured_extraction: bool = True  # 启用结构化提取
-    quality_threshold: float = 6.0  # 质量阈值
-    max_retries: int = 3  # 最大重试次数
-    timeout_seconds: int = 300  # 任务超时时间（秒）
-
-
-@dataclass
-class ProcessingStats:
-    """处理统计"""
-    total_found: int = 0
-    ai_filtered: int = 0
-    pdf_downloaded: int = 0
-    successfully_processed: int = 0
-    structure_extracted: int = 0
-    database_ingested: int = 0
-    errors: int = 0
-    duplicates: int = 0
-    processing_time: float = 0.0
-
-
-@dataclass
-class LiteratureItem:
-    """文献条目"""
-    paper_id: str
-    raw_data: Dict
-    quality_score: float = 0.0
-    is_duplicate: bool = False
-    ai_filtered: bool = False
-    pdf_path: Optional[str] = None
-    content_extracted: bool = False
-    structured_data: Optional[Dict] = None
-    literature_id: Optional[int] = None
-    error: Optional[str] = None
+def _normalize_source(raw: Optional[str]) -> str:
+    key = (raw or "").strip().lower()
+    if key in _SEMANTIC_SOURCE_KEYS:
+        return "semantic_scholar"
+    return key or "semantic_scholar"
 
 
 class SearchAndBuildLibraryService:
@@ -99,6 +67,7 @@ class SearchAndBuildLibraryService:
         self.pdf_processor = PDFProcessor()
         self.structuring_service = LightweightStructuringService(db)
         self.semantic_chunker = create_semantic_chunker()
+        self.data_sync_service = DataSyncService()
 
         # 初始化客户端
         self.research_client = None
@@ -115,6 +84,10 @@ class SearchAndBuildLibraryService:
         await self.research_client.__aenter__()
         self.temp_dir = tempfile.mkdtemp(prefix="search_build_")
         logger.info(f"初始化搜索建库服务，临时目录: {self.temp_dir}")
+        try:
+            await self.data_sync_service.init_elasticsearch()
+        except Exception as es_error:
+            logger.warning(f"初始化Elasticsearch连接失败，将在同步阶段重试: {es_error}")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -247,16 +220,23 @@ class SearchAndBuildLibraryService:
         """执行搜索阶段"""
         try:
             query = " ".join(keywords)
+            requested_limit = max(1, config.max_results or 1)
+            search_limit = min(requested_limit * 2, 500)
+
             papers = await self.research_client.search_all_papers(
-                query, max_count=500  # 搜索更多结果用于筛选
+                query, max_count=search_limit
             )
 
             self.stats.total_found = len(papers)
-            logger.info(f"搜索阶段完成，找到 {len(papers)} 篇文献")
+            logger.info(
+                "搜索阶段完成，找到 %s 篇文献，限制处理 %s 篇",
+                len(papers),
+                requested_limit,
+            )
 
             # 转换为LiteratureItem对象
             literature_items = []
-            for paper in papers:
+            for paper in papers[:requested_limit]:
                 item = LiteratureItem(
                     paper_id=paper.get("paperId", ""),
                     raw_data=paper,
@@ -351,7 +331,8 @@ class SearchAndBuildLibraryService:
             self.stats.duplicates = duplicate_count
             logger.info(f"去重阶段完成，剩余 {len(unique_items)} 篇唯一文献")
 
-            return unique_items
+            requested_limit = max(1, config.max_results or 1)
+            return unique_items[:requested_limit]
 
         except Exception as e:
             logger.error(f"去重阶段失败: {e}")
@@ -514,24 +495,32 @@ class SearchAndBuildLibraryService:
 
             # 分批入库以避免数据库锁定
             for i in range(0, len(items), batch_size):
-                batch_items = items[i:i+batch_size]
+                batch_items = items[i:i + batch_size]
+                synced_records: List[Dict[str, Any]] = []
 
                 try:
                     self.db.begin()
+                    try:
+                        self.db.begin_nested()
 
-                    for item in batch_items:
-                        try:
-                            literature_id = await self._save_literature_to_database(
+                        for item in batch_items:
+                            saved_record = await self._save_literature_to_database(
                                 item, project
                             )
-                            if literature_id:
-                                item.literature_id = literature_id
+                            if saved_record:
+                                item.literature_id = saved_record.get("literature_id")
                                 ingestion_success += 1
-                        except Exception as e:
-                            logger.warning(f"保存文献失败 {item.paper_id}: {e}")
-                            item.error = str(e)
+                                synced_records.append(saved_record)
 
-                    self.db.commit()
+                        self.db.commit()
+                    except Exception as batch_error:
+                        self.db.rollback()
+                        logger.error(f"数据库批次提交失败: {batch_error}")
+                        for item in batch_items:
+                            item.error = f"数据库错误: {str(batch_error)}"
+                        continue
+
+                    await self._sync_records_to_search_index(synced_records)
 
                 except SQLAlchemyError as e:
                     self.db.rollback()
@@ -547,6 +536,24 @@ class SearchAndBuildLibraryService:
         except Exception as e:
             logger.error(f"数据库入库阶段失败: {e}")
             raise
+
+    async def _sync_records_to_search_index(self, synced_records: List[Dict[str, Any]]) -> None:
+        """同步文献和段落到搜索索引"""
+        if not synced_records:
+            return
+
+        for record in synced_records:
+            literature_id = record.get("literature_id")
+            segment_ids = record.get("segment_ids", [])
+            try:
+                if literature_id:
+                    await self.data_sync_service.sync_literature_to_es(literature_id, self.db)
+                if segment_ids:
+                    await self.data_sync_service.bulk_sync_segments(segment_ids, self.db)
+            except Exception as sync_error:
+                logger.warning(
+                    f"同步到Elasticsearch失败 (literature={literature_id}): {sync_error}"
+                )
 
     async def _execute_cleanup_stage(self):
         """执行清理阶段"""
@@ -729,7 +736,7 @@ class SearchAndBuildLibraryService:
         self,
         item: LiteratureItem,
         project: Project
-    ) -> Optional[int]:
+    ) -> Optional[Dict[str, Any]]:
         """保存文献到数据库"""
         try:
             # 创建Literature对象
@@ -742,16 +749,20 @@ class SearchAndBuildLibraryService:
                 journal=item.raw_data.get("venue"),
                 publication_year=item.raw_data.get("year"),
                 doi=external_ids.get("DOI"),
-                external_ids=external_ids,
+                external_ids=external_ids or None,
                 citation_count=item.raw_data.get("citationCount", 0),
                 reference_count=item.raw_data.get("referenceCount", 0),
                 is_open_access=item.raw_data.get("isOpenAccess", False),
                 fields_of_study=item.raw_data.get("fieldsOfStudy") or [],
                 quality_score=item.quality_score,
-                source="search_and_build_library",
+                source_platform=_normalize_source(item.raw_data.get("source", "semantic_scholar")),
+                source_url=item.raw_data.get("url"),
+                pdf_url=item.raw_data.get("openAccessPdf", {}).get("url") if isinstance(item.raw_data.get("openAccessPdf"), dict) else None,
                 raw_data=item.raw_data,
+                is_downloaded=bool(item.pdf_path),
                 is_parsed=bool(item.content_extracted),
                 parsing_status="completed" if item.content_extracted else "pending",
+                status="completed" if item.content_extracted else "pending",
                 pdf_path=item.pdf_path
             )
 
@@ -763,12 +774,13 @@ class SearchAndBuildLibraryService:
                 project.literature.append(literature)
 
             # 保存结构化段落
+            segment_ids: List[int] = []
             if item.structured_data:
-                await self._save_structured_segments(
+                segment_ids = await self._save_structured_segments(
                     literature.id, item.structured_data, project
                 )
 
-            return literature.id
+            return {"literature_id": literature.id, "segment_ids": segment_ids}
 
         except Exception as e:
             logger.error(f"保存文献到数据库失败 {item.paper_id}: {e}")
@@ -779,8 +791,9 @@ class SearchAndBuildLibraryService:
         literature_id: int,
         structured_data: Dict,
         project: Project
-    ):
-        """保存结构化段落"""
+    ) -> List[int]:
+        """保存结构化段落并返回段落ID"""
+        segment_ids: List[int] = []
         try:
             for section_name, section_data in structured_data.items():
                 for subsection_name, subsection_content in section_data.items():
@@ -793,8 +806,12 @@ class SearchAndBuildLibraryService:
                         extraction_confidence=0.8
                     )
                     self.db.add(segment)
+                    self.db.flush()
+                    segment_ids.append(segment.id)
         except Exception as e:
             logger.error(f"保存结构化段落失败: {e}")
+
+        return segment_ids
 
     # 辅助方法
 
@@ -911,11 +928,10 @@ class SearchAndBuildLibraryService:
 
     async def _update_progress(self, step: str, progress: int, details: Dict = None):
         """更新进度"""
-        if self.progress_callback:
-            try:
-                await self.progress_callback(step, progress, details or {})
-            except Exception as e:
-                logger.warning(f"进度回调失败: {e}")
+        try:
+            await emit_progress(self.progress_callback, step, progress, details or {})
+        except Exception as e:
+            logger.warning(f"进度回调失败: {e}")
 
 
 # 工厂函数

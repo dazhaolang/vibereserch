@@ -1,0 +1,54 @@
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 48px 0 48px;
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(14px);
+  background: var(--topbar-background);
+  z-index: 4;
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.heading p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.userInfo {
+  cursor: pointer;
+}
+
+.userText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+@media (max-width: 960px) {
+  .topBar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px 24px 0 24px;
+    gap: 12px;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

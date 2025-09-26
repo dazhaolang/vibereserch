@@ -344,13 +344,13 @@ class DataAssetService:
                     experiences.append({
                         "id": exp.id,
                         "type": "main_experience",
-                        "experience_type": exp.experience_type,
+                        "experience_type": exp.experience_type or "未分类经验",
                         "content": exp.content,
-                        "methodology_summary": exp.methodology_summary,
-                        "key_findings": exp.key_findings,
-                        "practical_guidelines": exp.practical_guidelines,
-                        "quality_score": exp.quality_score,
-                        "literature_count": exp.literature_count,
+                        "methodology_summary": exp.methodology_summary or {},
+                        "key_findings": exp.key_findings or [],
+                        "practical_guidelines": exp.practical_guidelines or [],
+                        "quality_score": exp.quality_score or 0.0,
+                        "literature_count": exp.literature_count or 0,
                         "project_id": exp.project_id
                     })
             
@@ -594,7 +594,9 @@ class DataAssetService:
             experience_types = set()
             for exp in source_experiences:
                 if exp["type"] == "main_experience":
-                    experience_types.add(exp["experience_type"])
+                    exp_type = exp.get("experience_type")
+                    if exp_type:
+                        experience_types.add(exp_type)
             
             template_types = set(t.get("template_type", "general") for t in templates)
             
@@ -736,12 +738,12 @@ class DataAssetService:
                             "asset_type": "main_experience",
                             "similarity_score": similarity,
                             "content": {
-                                "experience_type": exp.experience_type,
+                                "experience_type": exp.experience_type or "未分类经验",
                                 "content": exp.content,
-                                "methodology_summary": exp.methodology_summary,
-                                "key_findings": exp.key_findings,
-                                "practical_guidelines": exp.practical_guidelines,
-                                "quality_score": exp.quality_score
+                                "methodology_summary": exp.methodology_summary or {},
+                                "key_findings": exp.key_findings or [],
+                                "practical_guidelines": exp.practical_guidelines or [],
+                                "quality_score": exp.quality_score or 0.0,
                             }
                         })
             

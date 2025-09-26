@@ -2,18 +2,20 @@
 MySQL和Elasticsearch数据同步服务
 """
 
+"""MySQL and Elasticsearch synchronization helpers."""
+
 import asyncio
 import json
-from typing import Dict, List, Optional, Any
+import logging
 from datetime import datetime
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from sqlalchemy.orm import Session
-from app.core.database import get_db
+
 from app.core.elasticsearch import get_elasticsearch
 from app.models.literature import Literature, LiteratureSegment
 from app.models.project import Project
 from app.services.ai_service import AIService
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +28,17 @@ class DataSyncService:
 
     async def init_elasticsearch(self):
         """初始化Elasticsearch客户端"""
-        self.es_client = await get_elasticsearch()
+        if not self.es_client:
+            self.es_client = await get_elasticsearch()
+
+    async def _ensure_client(self) -> None:
+        if not self.es_client:
+            await self.init_elasticsearch()
 
     async def sync_literature_to_es(self, literature_id: int, db: Session):
         """同步单个文献到Elasticsearch"""
         try:
+            await self._ensure_client()
             # 从MySQL获取文献数据
             literature = db.query(Literature).filter(Literature.id == literature_id).first()
             if not literature:
@@ -92,6 +100,7 @@ class DataSyncService:
     async def sync_literature_segment_to_es(self, segment_id: int, db: Session):
         """同步文献段落到Elasticsearch"""
         try:
+            await self._ensure_client()
             # 从MySQL获取段落数据
             segment = db.query(LiteratureSegment).filter(LiteratureSegment.id == segment_id).first()
             if not segment:
@@ -172,9 +181,60 @@ class DataSyncService:
             logger.error(f"Failed to sync project literature association: {e}")
             raise
 
+    async def bulk_sync_literature(self, literature_ids: List[int], db: Session) -> None:
+        """批量同步文献到Elasticsearch"""
+        for literature_id in literature_ids:
+            await self.sync_literature_to_es(literature_id, db)
+
+    async def bulk_sync_segments(self, segment_ids: List[int], db: Session) -> None:
+        """批量同步段落到Elasticsearch"""
+        for segment_id in segment_ids:
+            await self.sync_literature_segment_to_es(segment_id, db)
+
+    async def rebuild_project_indices(
+        self,
+        project_id: int,
+        db: Session,
+        progress_callback: Optional[Callable[[int, int, str], Awaitable[None]]] = None,
+    ) -> None:
+        """重新同步项目相关文献和段落到Elasticsearch"""
+
+        await self._ensure_client()
+
+        literatures = (
+            db.query(Literature)
+            .filter(Literature.projects.any(id=project_id))
+            .all()
+        )
+        segments = (
+            db.query(LiteratureSegment)
+            .join(Literature)
+            .filter(Literature.projects.any(id=project_id))
+            .all()
+        )
+
+        total = len(literatures) + len(segments)
+        if total == 0:
+            return
+
+        processed = 0
+
+        for literature in literatures:
+            await self.sync_literature_to_es(literature.id, db)
+            processed += 1
+            if progress_callback:
+                await progress_callback(processed, total, f"同步文献 {literature.title[:50]}")
+
+        for segment in segments:
+            await self.sync_literature_segment_to_es(segment.id, db)
+            processed += 1
+            if progress_callback:
+                await progress_callback(processed, total, f"同步段落 #{segment.id}")
+
     async def remove_literature_from_es(self, literature_id: int):
         """从Elasticsearch移除文献"""
         try:
+            await self._ensure_client()
             # 删除文献索引
             await self.es_client.delete_document(
                 index_name="literature_index",
@@ -210,6 +270,7 @@ class DataSyncService:
     async def remove_literature_segment_from_es(self, segment_id: int):
         """从Elasticsearch移除文献段落"""
         try:
+            await self._ensure_client()
             await self.es_client.delete_document(
                 index_name="literature_segments_index",
                 doc_id=str(segment_id)

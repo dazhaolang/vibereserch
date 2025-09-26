@@ -21,6 +21,7 @@ from app.models.experience import ExperienceBook
 from app.services.ai_service import AIService
 from app.utils.file_handler import FileHandler
 from loguru import logger
+from app.schemas.response_schemas import StandardResponse
 
 router = APIRouter()
 
@@ -97,7 +98,7 @@ async def create_empty_project(
     
     # 如果提供了分类，存储为临时元数据
     if project_data.category:
-        project.metadata = {"category": project_data.category}
+        project.extra_metadata = {"category": project_data.category}
     
     db.add(project)
     db.commit()
@@ -245,6 +246,59 @@ async def get_project(
         updated_at=project.updated_at.isoformat() if project.updated_at else None,
         literature_count=len(project.literature),
         progress_percentage=None
+    )
+
+
+@router.delete("/{project_id}", response_model=StandardResponse)
+async def delete_project(
+    project_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """删除项目。
+
+    - 仅允许删除当前用户的项目。
+    - 若存在进行中的任务会返回 400 提示先清理任务。
+    - 会同步清理项目与任务之间的关联。
+    """
+
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.owner_id == current_user.id
+    ).first()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="项目不存在或无权限")
+
+    active_statuses = {"pending", "running", "processing"}
+    active_tasks = db.query(Task).filter(
+        Task.project_id == project_id,
+        Task.status.in_(active_statuses)
+    ).count()
+
+    if active_tasks > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="项目仍有未完成的任务，请先取消或等待完成"
+        )
+
+    # 清理任务及其进度记录
+    task_ids = [row.id for row in db.query(Task.id).filter(Task.project_id == project_id).all()]
+    if task_ids:
+        db.query(TaskProgress).filter(TaskProgress.task_id.in_(task_ids)).delete(synchronize_session=False)
+        db.query(Task).filter(Task.id.in_(task_ids)).delete(synchronize_session=False)
+
+    # 清理文献关联，避免外键约束
+    if project.literature:
+        project.literature.clear()
+
+    db.delete(project)
+    db.commit()
+
+    return StandardResponse(
+        success=True,
+        message="项目删除成功",
+        data={"deleted_id": project_id}
     )
 
 @router.post("/determine-direction", response_model=ResearchDirectionResponse)

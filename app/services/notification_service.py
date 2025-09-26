@@ -6,20 +6,30 @@ import asyncio
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import List, Optional
+from typing import Dict, List, Optional
 from loguru import logger
+from datetime import datetime
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.user import Notification, NotificationType, NotificationStatus
 
 class NotificationService:
     """通知服务类"""
     
     def __init__(self):
-        # 邮件配置（实际使用时需要配置SMTP服务器）
-        self.smtp_server = "smtp.gmail.com"  # 示例
-        self.smtp_port = 587
-        self.smtp_username = "your-email@gmail.com"
-        self.smtp_password = "your-app-password"
+        # 邮件配置（从全局设置读取，便于不同环境覆盖）
+        self.smtp_server = settings.smtp_host
+        self.smtp_port = settings.smtp_port
+        self.smtp_username = settings.smtp_username
+        self.smtp_password = settings.smtp_password
+        self.use_tls = settings.smtp_use_tls
+        self.smtp_timeout = settings.smtp_timeout_seconds
+        self.default_sender = settings.notifications_from_email or self.smtp_username
+
+    def _smtp_configured(self) -> bool:
+        """判断SMTP是否已正确配置"""
+        return bool(self.smtp_server and self.default_sender)
         
     async def send_email(
         self,
@@ -40,11 +50,19 @@ class NotificationService:
         Returns:
             是否发送成功
         """
+        if not settings.notifications_enabled:
+            logger.info("通知发送已禁用，跳过邮件发送: %s", to_email)
+            return False
+
+        if not self._smtp_configured():
+            logger.warning("SMTP 未配置，无法发送邮件通知: %s", to_email)
+            return False
+
         try:
             # 创建邮件消息
             message = MIMEMultipart("alternative")
             message["Subject"] = subject
-            message["From"] = self.smtp_username
+            message["From"] = self.default_sender
             message["To"] = to_email
             
             # 添加文本内容
@@ -56,16 +74,19 @@ class NotificationService:
                 html_part = MIMEText(html_content, "html", "utf-8")
                 message.attach(html_part)
             
-            # 发送邮件（在实际环境中使用）
-            # with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-            #     server.starttls()
-            #     server.login(self.smtp_username, self.smtp_password)
-            #     server.send_message(message)
-            
-            # 模拟发送成功
+            # 发送邮件，放入线程池避免阻塞事件循环
+            def _send_message() -> None:
+                with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=self.smtp_timeout) as server:
+                    if self.use_tls:
+                        server.starttls()
+                    if self.smtp_username and self.smtp_password:
+                        server.login(self.smtp_username, self.smtp_password)
+                    server.send_message(message)
+
+            await asyncio.to_thread(_send_message)
             logger.info(f"邮件已发送到: {to_email}")
             return True
-            
+
         except Exception as e:
             logger.error(f"邮件发送失败: {e}")
             return False
@@ -89,24 +110,21 @@ class NotificationService:
         Returns:
             发送结果字典
         """
-        results = {}
-        
-        # 并发发送邮件
-        tasks = []
-        for email in recipients:
-            task = self.send_email(email, subject, content, html_content)
-            tasks.append((email, task))
-        
-        # 等待所有任务完成
-        for email, task in tasks:
-            try:
-                result = await task
-                results[email] = result
-            except Exception as e:
-                logger.error(f"发送邮件到 {email} 失败: {e}")
-                results[email] = False
-        
-        return results
+        if not recipients:
+            return {}
+
+        send_tasks = [self.send_email(email, subject, content, html_content) for email in recipients]
+        results = await asyncio.gather(*send_tasks, return_exceptions=True)
+
+        outcome: Dict[str, bool] = {}
+        for email, result in zip(recipients, results):
+            if isinstance(result, Exception):
+                logger.error(f"发送邮件到 {email} 失败: {result}")
+                outcome[email] = False
+            else:
+                outcome[email] = bool(result)
+
+        return outcome
     
     async def send_invitation_notification(
         self,
@@ -262,3 +280,103 @@ https://research-platform.com/app/projects
 """
         
         return await self.send_email(recipient_email, subject, content)
+
+    async def create_in_app_notification(
+        self,
+        db: Session,
+        user_id: int,
+        notification_type: NotificationType,
+        title: str,
+        message: str,
+        action_url: Optional[str] = None,
+        metadata: Optional[dict] = None
+    ) -> bool:
+        """创建应用内通知"""
+
+        try:
+            notification = Notification(
+                user_id=user_id,
+                type=notification_type,
+                title=title,
+                message=message,
+                action_url=action_url,
+                metadata_payload=metadata,
+                status=NotificationStatus.UNREAD
+            )
+
+            db.add(notification)
+            db.commit()
+            db.refresh(notification)
+
+            logger.info(f"应用内通知已创建: {notification_type.value} for user {user_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"创建应用内通知失败: {e}")
+            db.rollback()
+            return False
+
+    async def create_task_completion_notification(
+        self,
+        db: Session,
+        user_id: int,
+        task_name: str,
+        project_name: str,
+        task_id: Optional[int] = None
+    ) -> bool:
+        """创建任务完成通知"""
+
+        metadata = {"task_id": task_id} if task_id else None
+        action_url = f"/app/projects/{task_id}" if task_id else None
+
+        return await self.create_in_app_notification(
+            db=db,
+            user_id=user_id,
+            notification_type=NotificationType.TASK_COMPLETED,
+            title="任务完成",
+            message=f"项目 '{project_name}' 中的任务 '{task_name}' 已完成",
+            action_url=action_url,
+            metadata=metadata
+        )
+
+    async def create_task_failed_notification(
+        self,
+        db: Session,
+        user_id: int,
+        task_name: str,
+        project_name: str,
+        error_message: str,
+        task_id: Optional[int] = None
+    ) -> bool:
+        """创建任务失败通知"""
+
+        metadata = {"task_id": task_id, "error": error_message} if task_id else {"error": error_message}
+        action_url = f"/app/projects/{task_id}" if task_id else None
+
+        return await self.create_in_app_notification(
+            db=db,
+            user_id=user_id,
+            notification_type=NotificationType.TASK_FAILED,
+            title="任务失败",
+            message=f"项目 '{project_name}' 中的任务 '{task_name}' 执行失败: {error_message}",
+            action_url=action_url,
+            metadata=metadata
+        )
+
+    async def create_membership_expiring_notification(
+        self,
+        db: Session,
+        user_id: int,
+        days_remaining: int
+    ) -> bool:
+        """创建会员即将到期通知"""
+
+        return await self.create_in_app_notification(
+            db=db,
+            user_id=user_id,
+            notification_type=NotificationType.MEMBERSHIP_EXPIRING,
+            title="会员即将到期",
+            message=f"您的会员将在 {days_remaining} 天后到期，请及时续费以继续享受服务",
+            action_url="/app/profile/membership",
+            metadata={"days_remaining": days_remaining}
+        )

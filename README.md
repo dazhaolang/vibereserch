@@ -1,215 +1,179 @@
-# 科研文献智能分析平台 - 后端服务
+# 科研文献智能分析平台
 
 ## 项目概述
 
-这是一个中文研究文献智能分析平台的后端服务，使用 AI 技术分析学术论文，生成结构化经验，并提供智能问答功能。系统从多个文献来源处理文献并创建研究辅助知识库。
+该仓库包含科研文献智能分析平台的 **FastAPI 后端** 与 **React 前端**，提供文献采集、AI 分析、任务编排、实时进度、知识图谱等功能。系统依赖 MySQL、Redis、Elasticsearch 以及 Celery，并提供一键启动的 Docker Compose 环境。
 
 ## 技术栈
 
-- **框架**: FastAPI (Python 3.12+)
-- **数据库**: MySQL + Elasticsearch
-- **缓存**: Redis
-- **AI 服务**: OpenAI GPT 集成
-- **PDF 处理**: MinerU 集成
-- **异步任务**: Celery
-- **部署**: Docker
+- 后端：FastAPI · SQLAlchemy · Celery · Redis · Elasticsearch
+- 前端：React 18 · Vite · Ant Design Pro · TailwindCSS · Zustand
+- 数据库：MySQL 8
+- 消息与搜索：Redis 7 · Elasticsearch 8
+- 部署：Docker Compose（推荐）
 
-## 环境要求
+## 快速开始（Docker Compose）
 
-- Python 3.12+
-- MySQL 8.0+
-- Elasticsearch 7.x+
-- Redis 6.0+
-- Docker & Docker Compose (推荐)
+1. 准备环境变量
+   ```bash
+   cp .env.example .env
+   # 根据需要填写 OpenAI、数据库等配置，至少保证 JWT_SECRET_KEY 已修改
+   # 如需区分环境，可设置 APP_ENV=development|staging|production
+   ```
 
-## 快速开始
+2. 启动所有服务（首次运行会自动构建镜像并初始化数据库迁移）
+   ```bash
+   docker compose up -d --build
+   ```
 
-### 1. 环境变量配置
+3. 验证服务
+   ```bash
+   # 查看容器状态
+   docker compose ps
 
-复制环境变量示例文件并配置：
+   # 查看后端健康检查
+   curl http://localhost:8000/healthz
+
+   # 查看前端页面（浏览器访问）
+   http://localhost:3000
+   ```
+
+4. 常用命令
+   ```bash
+   # 查看日志
+   docker compose logs -f backend
+   docker compose logs -f celery
+
+   # 关闭服务
+   docker compose down
+
+   # 清理数据卷（会删除数据库/索引/上传文件）
+   docker compose down -v
+   ```
+
+> 注意：当前环境未启用 Docker 权限检查，如 `docker compose build` 出现 `permission denied`，请确保当前用户具备 Docker 运行权限再执行。
+
+## 本地开发
+
+### 后端
+1. 创建虚拟环境并安装依赖
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. 选择运行模式：
+   - **轻量模式（无需 MySQL/Redis/Elasticsearch）**
+     ```bash
+     export LIGHTWEIGHT_MODE=true
+     export ALLOW_SQLITE_FALLBACK=true
+     export DATABASE_URL=sqlite:///./dev.db
+     # 如需禁用 Redis，保持默认即可（轻量模式下会自动跳过）
+     ```
+   - **完整模式**：配置 `.env` 与 Docker 相同，并确保外部服务已就绪，然后执行 `alembic upgrade head`。
+3. 启动后端
+   ```bash
+   uvicorn app.main:app --host 0.0.0.0 --port 8000
+   ```
+4. 启动 Celery（可选，轻量模式可跳过）
+   ```bash
+   celery -A app.celery worker --loglevel=info
+   ```
+
+#### 可选运行开关
+
+通过下列环境变量可显式关闭重型依赖，便于本地或 CI 运行：
+
+| 变量 | 默认值 | 作用 |
+| --- | --- | --- |
+| `ENABLE_ELASTICSEARCH` | `true` | 为 `false` 时跳过 Elasticsearch 连接与索引创建 |
+| `ENABLE_MULTI_MODEL` | `true` | 关闭多模型协调器线程 |
+| `ENABLE_PERFORMANCE_MONITOR` | `true` | 禁用性能监控后台任务 |
+| `ENABLE_CLAUDE_MCP` | `true` | 不初始化 Claude Code MCP 客户端 |
+| `SKIP_ELASTICSEARCH_BOOTSTRAP` | `false` | 为 `true` 时不自动创建索引 |
+
+轻量模式 (`LIGHTWEIGHT_MODE=true`) 会自动跳过以上所有组件。
+
+### 前端
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173 默认带有 API 代理
+```
+如需连接后端地址，可在 `.env` 中设置 `VITE_API_BASE_URL` 或直接使用 `frontend/start.sh` 脚本（支持自定义 `BACKEND_URL`）。
+
+#### Zotero 发行资源
+
+前端三栏界面复用了 Zotero Web Library 的样式与脚本，相关静态资源无需本地编译，可通过脚本直接下载发行版：
 
 ```bash
-cp .env.example .env
+# 下载/刷新官方发行版资源，写入 frontend/public/zotero/
+./scripts/build-zotero.sh
 ```
 
-编辑 `.env` 文件，配置以下关键参数：
+该脚本会从 `https://www.zotero.org/static/web-library/` 拉取 CSS、JS、字体、图标和 `xdelta3.wasm`，使用前请留意 `NOTICE.md` 中的来源与许可说明。如需锁定特定版本，可改写脚本为下载指定 release，并在文档中记录下载日期/版本号。React 适配层通过 `/zotero/...` 引用这些资源，应确保目录在版本管理中或部署阶段一并发布。
 
-```env
-# 数据库配置
-DATABASE_URL=mysql://raggar:raggar123@localhost:3306/research_platform
+## 测试与质量保证
 
-# Redis 配置
-REDIS_URL=redis://localhost:6379
+- 后端单元测试
+  ```bash
+  pytest
+  ```
+- 前端静态检查与构建
+  ```bash
+  cd frontend
+  npm run lint
+  npm run build
+  ```
 
-# Elasticsearch 配置
-ELASTICSEARCH_URL=http://localhost:9200
+目前测试全部通过（70 个后端测试 + 新增健康检查覆盖，前端 `lint` 与 `build` 通过）。
 
-# AI 服务配置
-OPENAI_API_KEY=your_openai_api_key
-SEMANTIC_SCHOLAR_API_KEY=your_semantic_scholar_key
+## 健康检查与监控
 
-# JWT 密钥
-JWT_SECRET_KEY=your_strong_secret_key
-```
+- 存活检查：`GET http://localhost:8000/live`
+- 就绪检查：`GET http://localhost:8000/readyz`
+- 系统状态：`GET http://localhost:8000/api/system/status`
+- Prometheus 指标：`GET http://localhost:8000/metrics`
 
-### 2. Docker 方式部署（推荐）
+> `/healthz` 和 `/metrics` 现在会回传运行环境 (`APP_ENV`)、服务启动时长以及活动用户、文献总数和任务排队数量等业务指标，便于外部监控平台采集。
 
-启动数据库服务：
+### 邮件通知
 
-```bash
-# 启动 MySQL, Elasticsearch, Redis 容器
-docker-compose up mysql elasticsearch redis -d
-```
-
-### 3. 手动安装
-
-#### 3.1 创建虚拟环境
-
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或 venv\Scripts\activate  # Windows
-```
-
-#### 3.2 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-#### 3.3 数据库初始化
-
-```bash
-# 创建数据库表
-PYTHONPATH=/path/to/your/backend python -c "from app.core.database import engine, Base; Base.metadata.create_all(bind=engine)"
-```
-
-#### 3.4 启动服务
-
-```bash
-# 启动主应用
-PYTHONPATH=/path/to/your/backend uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# 启动 Celery 工作进程（新终端）
-PYTHONPATH=/path/to/your/backend celery -A app.celery worker --loglevel=info
-```
-
-## API 文档
-
-启动服务后访问：
-
-- Swagger UI: http://localhost:8000/api/docs
-- ReDoc: http://localhost:8000/api/redoc
-- 健康检查: http://localhost:8000/health
-
-## 主要功能模块
-
-### 文献处理流程
-
-1. **文献收集**: Google Scholar + Semantic Scholar APIs
-2. **AI 过滤**: 基于 GPT 的相关性评估
-3. **PDF 处理**: MinerU 集成高质量文本提取
-4. **结构化**: 自动轻量级数据模板生成
-5. **经验增强**: 动态停止的迭代学习
-
-### API 端点
-
-- `/api/auth/*` - 用户认证
-- `/api/literature/*` - 文献管理
-- `/api/analysis/*` - 智能分析
-- `/api/research-direction/*` - 研究方向
-- `/api/experiment-design/*` - 实验设计
-- `/api/project/*` - 项目管理
-
-### 多模型 AI 协调
-
-- 位置: `app/services/multi_model_coordinator.py`
-- 管理多个 AI 模型实例
-- 负载均衡和故障转移策略
-- 健康检查和系统状态监控
-
-## 开发指南
-
-### 添加新的 API 端点
-
-1. 在 `app/api/` 中创建路由处理器
-2. 在 `app/schemas/` 中定义 Pydantic 模式
-3. 在 `app/services/` 中添加业务逻辑
-4. 在 `app/main.py` 中注册路由
-
-### 后台任务处理
-
-- 在 `app/tasks/` 中定义任务
-- 使用 Celery 装饰器进行异步处理
-- 集成 WebSocket 进度更新
-- 处理错误情况和重试逻辑
-
-## 项目结构
+若希望启用任务完成或协作邀请等邮件通知，请在 `.env` 中配置：
 
 ```
-backend/
-├── app/
-│   ├── main.py              # FastAPI 应用入口
-│   ├── api/                 # API 路由处理器
-│   ├── core/               # 核心配置和数据库
-│   ├── models/             # SQLAlchemy 数据库模型
-│   ├── schemas/            # Pydantic 请求/响应模式
-│   ├── services/           # 业务逻辑服务
-│   ├── tasks/              # Celery 后台任务
-│   └── middleware/         # 自定义中间件
-├── requirements.txt         # Python 依赖
-├── alembic.ini             # 数据库迁移配置
-├── docker-compose.yml      # Docker 编排
-└── sql/                    # SQL 初始化脚本
+NOTIFICATIONS_ENABLED=true
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
+SMTP_USE_TLS=true
+NOTIFICATIONS_FROM_EMAIL=research-bot@example.com
 ```
 
-## 测试
+未配置 SMTP 时服务会自动降级为仅记录日志，不会抛出未处理异常。
 
-```bash
-# 运行测试
-python -m pytest
+当通过 Docker Compose 部署时，`backend` 服务会在启动时自动执行 Alembic 迁移，并通过健康检查确保依赖可用；`frontend` 容器会将 `/api`、`/ws`、`/uploads` 代理到后端。
 
-# 代码格式化
-black .
-isort .
+## 目录结构
+
+```
+.
+├── app/                 # FastAPI 应用代码
+├── frontend/            # React 前端
+├── alembic/             # 数据库迁移脚本
+├── docker/              # Docker 相关文件（前端构建、入口脚本、Nginx 配置）
+├── docker-compose.yml   # 一键启动编排
+├── requirements.txt     # 后端依赖
+├── scripts/             # 外部服务脚本/工具
+├── tests/               # 后端测试
+└── docs/                # 设计与运维文档（如 websocket_integration_guide.md、notification_setup.md）
 ```
 
-## 性能考虑
+## 进一步规划
 
-- 多模型 AI 协调负载分布
-- Elasticsearch 全文和语义搜索
-- Redis 缓存频繁访问数据
-- Celery 异步处理长时间运行任务
-- WebSocket 实时更新减少轮询
+- 补充 Docker 环境下的端到端自动化测试
+- 将 `datetime.utcnow()` 替换为时区感知时间戳
+- 优化前端构建体积（目前部分 chunk > 500 kB，仅有警告）
 
-## 故障排除
-
-### 常见问题
-
-1. **数据库连接错误**：检查 DATABASE_URL 配置
-2. **Redis 连接错误**：确保 Redis 服务运行
-3. **Elasticsearch 错误**：检查 ES 服务状态和索引配置
-4. **API 密钥错误**：验证 OpenAI 和 Semantic Scholar API 密钥
-
-### 日志查看
-
-```bash
-# 查看应用日志
-tail -f app.log
-
-# 查看 Celery 日志
-tail -f celery.log
-```
-
-## 许可证
-
-[根据项目实际情况添加许可证信息]
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request。
-
-## 联系方式
-
-- 邮箱: 1842156241@qq.com
-- GitHub: [@dazhaolang](https://github.com/dazhaolang)
+欢迎按照上述步骤验证并部署，如需定制化部署或监控集成，可在 `docs/` 目录扩展文档。

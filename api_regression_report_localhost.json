@@ -1,0 +1,113 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "results": [
+    {
+      "name": "root",
+      "method": "GET",
+      "path": "/",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 5.958858993835747,
+      "detail": "",
+      "response_excerpt": "{\"message\": \"科研文献智能分析平台 2.2 - Claude Code + MCP集成版\", \"version\": \"2.2.0\", \"features\": [\"智能科研助手 - 深度文献问答\", \"知识图谱 - 实体关系可视化\", \"实时协作 - 多用户研究工作空间\", \"趋势分析 - 研究热点预测\", \"语义搜索 - 向量相似度匹配\", \"性能优化 - 大规模处理加速\", \"成本控"
+    },
+    {
+      "name": "openapi",
+      "method": "GET",
+      "path": "/openapi.json",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 252.25722702452913,
+      "detail": "",
+      "response_excerpt": "{\"openapi\": \"3.1.0\", \"info\": {\"title\": \"科研文献智能分析平台 - Claude Code + MCP集成版\", \"description\": \"\\n    基于AI的科研文献处理和经验增强平台 - 突破性功能版本 + Claude Code MCP集成\\n\\n    🚀 **突破性功能**:\\n    - 智能科研助手: 深度文献问答和研究假设生成\\n   "
+    },
+    {
+      "name": "docs",
+      "method": "GET",
+      "path": "/api/docs",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 3.5547470033634454,
+      "detail": "",
+      "response_excerpt": "\n    <!DOCTYPE html>\n    <html>\n    <head>\n    <link type=\"text/css\" rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css\">\n    <link rel=\"shortcut icon\" href=\"https://"
+    },
+    {
+      "name": "health",
+      "method": "GET",
+      "path": "/health",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 3.5900000075343996,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"degraded\", \"version\": \"2.2.0\", \"features_status\": {\"multi_model_ai\": \"active\", \"smart_assistant\": \"active\", \"knowledge_graph\": \"active\", \"collaborative_workspace\": \"active\", \"vector_search"
+    },
+    {
+      "name": "healthz",
+      "method": "GET",
+      "path": "/healthz",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 11.100694013293833,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"degraded\", \"checked_at\": \"2025-09-19T12:09:36.765599\", \"timestamp\": \"2025-09-19T12:09:36.765938\"}"
+    },
+    {
+      "name": "readyz",
+      "method": "GET",
+      "path": "/readyz",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 3.407721989788115,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"degraded\", \"checked_at\": \"2025-09-19T12:09:36.765599\", \"components\": [{\"name\": \"database\", \"status\": \"healthy\", \"latency_ms\": 1.64, \"details\": {\"connection\": \"active\", \"query_test\": \"passe"
+    },
+    {
+      "name": "live",
+      "method": "GET",
+      "path": "/live",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 2.7888609911315143,
+      "detail": "",
+      "response_excerpt": "{\"status\": \"ok\", \"timestamp\": \"2025-09-19T12:09:36.772922\"}"
+    },
+    {
+      "name": "status",
+      "method": "GET",
+      "path": "/status",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 2.794719999656081,
+      "detail": "",
+      "response_excerpt": "{\"application\": {\"name\": \"VibResearch Platform\", \"version\": \"1.0.0\", \"status\": \"degraded\"}, \"health\": {\"status\": \"degraded\", \"checked_at\": \"2025-09-19T12:09:36.765599\", \"components\": [{\"name\": \"databa"
+    },
+    {
+      "name": "info",
+      "method": "GET",
+      "path": "/info",
+      "status": "PASS",
+      "status_code": 200,
+      "elapsed_ms": 3.161472995998338,
+      "detail": "",
+      "response_excerpt": "{\"application\": {\"name\": \"VibResearch Platform\", \"version\": \"1.0.0\", \"description\": \"科研文献智能分析平台\", \"environment\": \"development\"}, \"build\": {\"timestamp\": \"2025-09-18T17:00:00Z\", \"commit\": \"unknown\"}, \"f"
+    },
+    {
+      "name": "auth_login",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": "FAIL",
+      "status_code": 401,
+      "elapsed_ms": 6.370752002112567,
+      "detail": "unexpected status 401",
+      "response_excerpt": "{\"success\": false, \"message\": \"邮箱或密码错误\", \"error_code\": \"HTTP_401\", \"error_id\": \"ERR-20250919120936\", \"timestamp\": \"2025-09-19T12:09:36.785159+00:00\", \"path\": \"/api/auth/login\"}"
+    }
+  ],
+  "summary": {
+    "PASS": 9,
+    "WARN": 0,
+    "FAIL": 1,
+    "ERROR": 0,
+    "SKIP": 0
+  },
+  "generated_at": 1758283776
+}

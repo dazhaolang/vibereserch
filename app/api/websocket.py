@@ -426,7 +426,32 @@ async def websocket_global_endpoint(
     全局WebSocket端点
     用于系统级通知和管理
     """
-    
+
+    # WebSocket认证验证 (与 /ws/progress/{task_id} 保持一致)
+    user = None
+    if token:
+        try:
+            # 验证token并获取用户信息
+            from app.core.security import get_current_user_from_token
+            from app.core.database import get_db
+
+            db = next(get_db())
+            try:
+                user = await get_current_user_from_token(token, db)
+                if not user:
+                    await websocket.close(code=4001, reason="Invalid token")
+                    return
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"全局WebSocket认证失败: {e}")
+            await websocket.close(code=4001, reason="Authentication failed")
+            return
+    else:
+        # 没有提供token，拒绝连接
+        await websocket.close(code=4001, reason="Token required")
+        return
+
     await manager.connect(websocket)
     
     try:

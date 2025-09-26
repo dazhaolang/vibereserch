@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-09-20T08:34:44.111251",
+  "mode": "auto",
+  "query": "哈哈哈",
+  "config": {
+    "processing_method": "standard",
+    "enable_ai_filtering": true,
+    "batch_size": 10,
+    "max_concurrent_downloads": 5
+  },
+  "execution_plan": {
+    "phases": [],
+    "timeline": [],
+    "resource_estimates": {
+      "total_duration_minutes": 0,
+      "peak_memory_mb": 0,
+      "estimated_tokens": 0,
+      "concurrent_tasks": 0
+    },
+    "dependencies": []
+  },
+  "estimated_resources": {
+    "total_duration_minutes": 0,
+    "peak_memory_mb": 0,
+    "estimated_tokens": 0,
+    "concurrent_tasks": 0
+  },
+  "phases": []
+}

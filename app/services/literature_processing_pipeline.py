@@ -46,10 +46,11 @@ class ProcessingTask:
     paper_id: str
     title: str
     pdf_url: str
+    doi: Optional[str] = None
     method: ProcessingMethod
     priority: int = 5
     created_at: float = None
-    
+
     def __post_init__(self):
         if self.created_at is None:
             self.created_at = time.time()
@@ -108,25 +109,26 @@ class LiteratureProcessingPipeline:
         print(f"🔍 开始搜索: {query}")
         self.task_status["search"] = ProcessingStatus.SEARCHING
         
-        search_results = await self.research_rabbit.search_papers(
+        papers = await self.research_rabbit.search_all_papers(
             query=query,
-            limit=max_results
+            max_count=max_results
         )
-        
-        if not search_results or not search_results.get("papers"):
+
+        if not papers:
             return {"error": "搜索无结果", "papers": []}
-        
-        papers = search_results["papers"][:max_results]
+
         print(f"✅ 搜索完成，找到 {len(papers)} 篇文献")
         
         # 2. 创建处理任务
         tasks = []
         for i, paper in enumerate(papers):
+            external_ids = paper.get("externalIds", {}) if isinstance(paper.get("externalIds"), dict) else {}
             task = ProcessingTask(
                 task_id=f"task_{int(time.time())}_{i}",
-                paper_id=paper.get("id", f"paper_{i}"),
+                paper_id=paper.get("paperId") or paper.get("id", f"paper_{i}"),
                 title=paper.get("title", "Unknown"),
-                pdf_url=paper.get("pdf_url", ""),
+                pdf_url=paper.get("pdfUrl") or paper.get("pdf_url", ""),
+                doi=external_ids.get("DOI"),
                 method=preferred_method,
                 priority=5 - (i // 5)  # 前几个优先级高
             )
@@ -186,13 +188,19 @@ class LiteratureProcessingPipeline:
         """处理单篇文献"""
         try:
             # 1. 下载PDF
-            if not task.pdf_url:
-                return {"error": "无PDF链接", "task_id": task.task_id}
-            
+            pdf_url = task.pdf_url
+            if not pdf_url and task.doi:
+                pdf_info = await self.research_rabbit.get_pdf_info(task.doi)
+                if pdf_info:
+                    pdf_url = pdf_info.get("url_for_pdf") or pdf_info.get("pdf_url")
+
+            if not pdf_url:
+                return {"error": "无可用PDF链接", "task_id": task.task_id, "title": task.title}
+
             self.task_status[task.task_id] = ProcessingStatus.DOWNLOADING
             self.task_progress[task.task_id] = 0.1
             
-            pdf_content = await self._download_pdf_with_retry(task.pdf_url)
+            pdf_content = await self._download_pdf_with_retry(pdf_url)
             if not pdf_content:
                 return {"error": "PDF下载失败", "task_id": task.task_id}
             

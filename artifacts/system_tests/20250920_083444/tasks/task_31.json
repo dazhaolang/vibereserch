@@ -1,0 +1,48 @@
+{
+  "task_id": "31",
+  "timestamp": "2025-09-20T08:34:44.141096",
+  "mode": "auto",
+  "config": {
+    "type": "search_pipeline",
+    "keywords": [
+      "哈哈哈"
+    ],
+    "enable_ai_filtering": true,
+    "enable_pdf_processing": true,
+    "enable_structured_extraction": true,
+    "batch_size": 10,
+    "max_concurrent_downloads": 5,
+    "auto_pipeline": {
+      "mode": "auto",
+      "query": "哈哈哈",
+      "processing_method": "standard",
+      "agent_plan": {
+        "strategy": "question_answering_simple",
+        "tools": [
+          "query_knowledge"
+        ],
+        "execution_plan": [
+          {
+            "step": 1,
+            "tool": "query_knowledge",
+            "description": "基于经验库和文献库进行智能问答",
+            "dependencies": null
+          }
+        ],
+        "estimated_cost": 0.1,
+        "estimated_time": 30
+      },
+      "agent": "claude",
+      "on_complete": {
+        "type": "experience_generation",
+        "payload": {
+          "query": "哈哈哈",
+          "processing_method": "standard"
+        }
+      }
+    }
+  },
+  "user_id": 108,
+  "project_id": 29,
+  "status": "triggered"
+}

@@ -3,10 +3,11 @@
 确保文献数据的类型安全和一致性
 """
 
-from pydantic import BaseModel, Field, validator, HttpUrl, model_validator
+from pydantic import BaseModel, Field, HttpUrl, model_validator, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+import re
 
 # ============================================
 # 枚举类型
@@ -49,9 +50,9 @@ class SegmentTypeEnum(str, Enum):
 
 class LiteratureCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=1000, description="文献标题")
-    authors: List[str] = Field(..., min_items=1, max_items=20, description="作者列表")
+    authors: List[str] = Field(..., min_length=1, max_length=20, description="作者列表")
     abstract: Optional[str] = Field(None, max_length=5000, description="摘要")
-    keywords: Optional[List[str]] = Field(None, max_items=20, description="关键词")
+    keywords: Optional[List[str]] = Field(None, max_length=20, description="关键词")
     
     # 发表信息
     journal: Optional[str] = Field(None, max_length=500, description="期刊名称")
@@ -69,27 +70,36 @@ class LiteratureCreateRequest(BaseModel):
     # 项目关联
     project_id: int = Field(..., description="项目ID")
     
-    @validator('authors')
-    def validate_authors(cls, v):
-        if not v or len(v) == 0:
-            raise ValueError('至少需要一个作者')
-        # 清理作者名称
-        return [author.strip() for author in v if author.strip()]
-    
-    @validator('keywords')
-    def validate_keywords(cls, v):
-        if v:
-            return [keyword.strip().lower() for keyword in v if keyword.strip()]
-        return v
+    @field_validator("authors", mode="before")
+    def validate_authors(cls, value):
+        if not value or len(value) == 0:
+            raise ValueError("至少需要一个作者")
+        cleaned_authors: List[str] = []
+        for author in value:
+            author_str = str(author).strip()
+            if author_str:
+                cleaned_authors.append(author_str)
+        return cleaned_authors
+
+    @field_validator("keywords", mode="before")
+    def validate_keywords(cls, value):
+        if value:
+            cleaned_keywords: List[str] = []
+            for keyword in value:
+                keyword_str = str(keyword).strip()
+                if keyword_str:
+                    cleaned_keywords.append(keyword_str.lower())
+            return cleaned_keywords
+        return value
 
 class LiteratureUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=1000)
-    authors: Optional[List[str]] = Field(None, min_items=1, max_items=20)
+    authors: Optional[List[str]] = Field(None, min_length=1, max_length=20)
     abstract: Optional[str] = Field(None, max_length=5000)
-    keywords: Optional[List[str]] = Field(None, max_items=20)
+    keywords: Optional[List[str]] = Field(None, max_length=20)
     journal: Optional[str] = Field(None, max_length=500)
     publication_year: Optional[int] = Field(None, ge=1900, le=2030)
-    tags: Optional[List[str]] = Field(None, max_items=10)
+    tags: Optional[List[str]] = Field(None, max_length=10)
     category: Optional[str] = Field(None, max_length=100)
 
 class LiteratureSearchRequest(BaseModel):
@@ -110,7 +120,7 @@ class AILiteratureSearchRequest(BaseModel):
 
 class LiteratureCollectionRequest(BaseModel):
     project_id: int = Field(..., description="项目ID")
-    keywords: List[str] = Field(..., min_items=1, max_items=10, description="搜索关键词")
+    keywords: List[str] = Field(..., min_length=1, max_length=10, description="搜索关键词")
     max_count: Optional[int] = Field(100, ge=1, le=5000, description="最大采集数量")
     sources: Optional[List[LiteratureSourceEnum]] = None
     enable_ai_screening: bool = Field(True, description="是否启用AI初筛")
@@ -188,6 +198,7 @@ class LiteratureResponse(BaseModel):
     # 项目特定字段 - 前端扩展字段
     relevance_score: Optional[float] = None
     is_selected: Optional[bool] = None  # 前端需要的批量操作字段
+    is_starred: Optional[bool] = None
     tags: Optional[List[str]] = None
     category: Optional[str] = None
     
@@ -207,9 +218,19 @@ class LiteratureListResponse(BaseModel):
     tags: Optional[List[str]]
     category: Optional[str]
     created_at: datetime
-    
+    is_starred: Optional[bool] = None
+
     class Config:
         from_attributes = True
+
+
+class LiteraturePageResponse(BaseModel):
+    items: List[LiteratureResponse]
+    total: int
+    page: int
+    page_size: int
+    has_more: bool
+
 
 class LiteratureSearchResponse(BaseModel):
     items: List[LiteratureListResponse]
@@ -253,20 +274,20 @@ class LiteratureStatsResponse(BaseModel):
 # ============================================
 
 class BatchTagRequest(BaseModel):
-    literature_ids: List[int] = Field(..., min_items=1, max_items=1000)
-    tags: List[str] = Field(..., min_items=1, max_items=10)
+    literature_ids: List[int] = Field(..., min_length=1, max_length=1000)
+    tags: List[str] = Field(..., min_length=1, max_length=10)
     action: str = Field("add", pattern="^(add|remove|replace)$")
 
 class BatchCategorizeRequest(BaseModel):
-    literature_ids: List[int] = Field(..., min_items=1, max_items=1000)
+    literature_ids: List[int] = Field(..., min_length=1, max_length=1000)
     category: str = Field(..., min_length=1, max_length=100)
 
 class BatchMoveRequest(BaseModel):
-    literature_ids: List[int] = Field(..., min_items=1, max_items=1000)
+    literature_ids: List[int] = Field(..., min_length=1, max_length=1000)
     target_project_id: int = Field(..., description="目标项目ID")
 
 class BatchExportRequest(BaseModel):
-    literature_ids: List[int] = Field(..., min_items=1, max_items=1000)
+    literature_ids: List[int] = Field(..., min_length=1, max_length=1000)
     format: str = Field("json", pattern="^(json|csv|bibtex|ris|excel)$")
     include_options: Optional[Dict[str, bool]] = None
 

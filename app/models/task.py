@@ -12,9 +12,11 @@ class TaskType(enum.Enum):
     LITERATURE_COLLECTION = "literature_collection"
     LITERATURE_SCREENING = "literature_screening" 
     STRUCTURE_EXTRACTION = "structure_extraction"
+    LITERATURE_PROCESSING = "literature_processing"
     EXPERIENCE_GENERATION = "experience_generation"
     MAIN_EXPERIENCE_UPDATE = "main_experience_update"
     QUESTION_ANALYSIS = "question_analysis"
+    PDF_PROCESSING = "literature_pdf_processing"
 
 class TaskStatus(enum.Enum):
     PENDING = "pending"
@@ -46,6 +48,11 @@ class Task(Base):
     # 执行结果
     result = Column(JSON)  # 任务结果
     error_message = Column(Text)  # 错误信息
+
+    # 成本统计
+    token_usage = Column(Float, default=0.0)
+    cost_estimate = Column(Float, default=0.0)
+    cost_breakdown = Column(JSON)
     
     # 时间统计
     estimated_duration = Column(Integer)  # 预估耗时（秒）

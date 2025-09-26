@@ -10,8 +10,18 @@ import subprocess
 import time
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
-import httpx
 from pathlib import Path
+
+import httpx
+
+try:
+    from app.services.mcp_tool_registry import mcp_tool_registry
+    from app.services.mcp_tool_setup import setup_mcp_tools
+except Exception:  # pragma: no cover
+    mcp_tool_registry = None
+
+    def setup_mcp_tools() -> None:  # type: ignore
+        return
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +33,7 @@ class ClaudeCodeMCPClient:
         self.base_url = base_url or "https://api.anthropic.com"
         self.mcp_server_process = None
         self.mcp_server_url = "stdio"  # MCP通过stdio通信
+        self._current_context: Dict[str, Any] = {}
 
         # MCP工具映射
         self.available_tools = {
@@ -37,18 +48,25 @@ class ClaudeCodeMCPClient:
     async def start_mcp_server(self):
         """启动MCP服务器"""
         try:
-            mcp_server_path = Path(__file__).parent.parent / "mcp_server.py"
+            # Use absolute path to ensure file is found
+            import os
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            mcp_server_path = os.path.join(project_root, 'app', 'mcp_server.py')
 
-            if not mcp_server_path.exists():
+            logger.info(f"Looking for MCP server at: {mcp_server_path}")
+
+            if not os.path.exists(mcp_server_path):
                 raise FileNotFoundError(f"MCP服务器文件不存在: {mcp_server_path}")
 
             # 启动MCP服务器进程
             self.mcp_server_process = subprocess.Popen(
-                ["python", str(mcp_server_path)],
+                ["python3", mcp_server_path],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                cwd=project_root,  # 设置工作目录
+                bufsize=0  # 无缓冲，确保实时通信
             )
 
             # 等待服务器启动
@@ -95,6 +113,7 @@ class ClaudeCodeMCPClient:
             编排结果和执行状态
         """
         try:
+            self._current_context = {**(context or {}), "user_query": user_query}
             if progress_callback:
                 await progress_callback("开始Claude Code智能编排分析...", 10)
 
@@ -200,8 +219,8 @@ class ClaudeCodeMCPClient:
             },
             "research_synthesis": {
                 "simple": ["generate_experience"],
-                "medium": ["structure_literature", "generate_experience"],
-                "complex": ["collect_literature", "structure_literature", "generate_experience"]
+                "medium": ["process_literature", "generate_experience"],
+                "complex": ["collect_literature", "process_literature", "generate_experience"]
             },
             "project_management": {
                 "simple": ["get_project_status"],
@@ -281,37 +300,42 @@ class ClaudeCodeMCPClient:
                 "method": "tools/call",
                 "params": {
                     "name": tool_name,
-                    "arguments": arguments
-                }
+                    "arguments": arguments,
+                },
             }
 
-            # 通过stdio与MCP服务器通信
+            # 优先尝试通过外部MCP服务器
             if self.mcp_server_process and self.mcp_server_process.poll() is None:
-                # 发送请求
-                request_json = json.dumps(mcp_request) + "\n"
-                self.mcp_server_process.stdin.write(request_json)
-                self.mcp_server_process.stdin.flush()
+                try:
+                    request_json = json.dumps(mcp_request) + "\n"
+                    self.mcp_server_process.stdin.write(request_json)
+                    self.mcp_server_process.stdin.flush()
 
-                # 读取响应
-                response_line = self.mcp_server_process.stdout.readline()
-
-                if response_line:
-                    response = json.loads(response_line.strip())
-
-                    if "result" in response:
-                        return response["result"]
-                    elif "error" in response:
-                        raise Exception(f"MCP工具错误: {response['error']}")
-                    else:
+                    response_line = self.mcp_server_process.stdout.readline()
+                    if response_line:
+                        response = json.loads(response_line.strip())
+                        if "result" in response:
+                            return response["result"]
+                        if "error" in response:
+                            raise Exception(f"MCP工具错误: {response['error']}")
                         raise Exception("MCP响应格式错误")
-                else:
                     raise Exception("MCP服务器无响应")
-            else:
-                raise Exception("MCP服务器未运行")
+                except Exception as server_error:
+                    logger.warning(f"外部MCP服务器调用失败，将尝试本地执行: {server_error}")
+
+            # 若服务器不可用，使用注册表直接执行工具
+            if mcp_tool_registry:
+                try:
+                    setup_mcp_tools()
+                    registry_result = mcp_tool_registry.run_tool(tool_name, arguments)
+                    return registry_result
+                except Exception as registry_error:
+                    logger.error(f"本地MCP工具执行失败: {registry_error}")
+
+            raise Exception("MCP服务器未运行")
 
         except Exception as e:
             logger.error(f"MCP工具调用失败: {e}")
-            # 降级到直接API调用（临时方案）
             return await self._fallback_api_call(tool_name, arguments)
 
     async def _fallback_api_call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -323,9 +347,12 @@ class ClaudeCodeMCPClient:
             "get_project_status": "/api/project/{project_id}",
             "query_knowledge": "/api/analysis/chat",
             "collect_literature": "/api/literature/collect",
-            "structure_literature": "/api/literature/structure",
+            "process_literature": "/api/literature/structure",
             "generate_experience": "/api/analysis/experience"
         }
+
+        if tool_name == "structure_literature":
+            tool_name = "process_literature"
 
         endpoint = fallback_mapping.get(tool_name)
         if not endpoint:
@@ -340,41 +367,75 @@ class ClaudeCodeMCPClient:
         }
 
     def _get_tool_arguments(self, tool_name: str) -> Dict[str, Any]:
-        """获取工具的默认参数"""
+        """根据当前上下文生成工具调用参数。"""
 
-        default_arguments = {
-            "collect_literature": {
-                "query": "机器学习",
-                "field": "计算机科学",
-                "max_papers": 10,
-                "quality_threshold": 7.0
-            },
-            "structure_literature": {
-                "literature_ids": [1, 2, 3],
-                "field": "计算机科学"
-            },
-            "generate_experience": {
-                "project_id": 1,
-                "literature_ids": [1, 2, 3],
-                "research_question": "机器学习算法的应用研究"
-            },
-            "query_knowledge": {
-                "question": "什么是深度学习？",
-                "project_id": 1,
-                "use_main_experience": True
-            },
-            "create_project": {
-                "name": "Claude Code测试项目",
-                "field": "计算机科学",
-                "description": "用于测试Claude Code集成",
-                "keywords": ["AI", "机器学习"]
-            },
-            "get_project_status": {
-                "project_id": 1
+        context = self._current_context or {}
+        project_id = context.get("project_id")
+        keywords = context.get("keywords") or []
+        config = context.get("config") or {}
+        user_query = context.get("user_query") or context.get("query")
+        user_id = context.get("user_id")
+
+        if user_id is None and tool_name in {
+            "collect_literature",
+            "process_literature",
+            "structure_literature",
+            "generate_experience",
+            "task_statistics",
+        }:
+            raise ValueError("调用MCP工具时缺少 user_id")
+
+        if tool_name == "collect_literature":
+            return {
+                "project_id": project_id,
+                "user_id": user_id,
+                "keywords": keywords,
+                "max_count": config.get("collection_max_count")
+                or config.get("max_results")
+                or config.get("batch_size")
+                or 50,
+                "sources": config.get("sources", []),
+                "search_mode": config.get("search_mode", "standard"),
+                "query": user_query,
+                "config": config,
             }
-        }
+        if tool_name in {"process_literature", "structure_literature"}:
+            return {
+                "project_id": project_id,
+                "user_id": user_id,
+                "keywords": keywords,
+                "config": config,
+            }
+        if tool_name == "generate_experience":
+            return {
+                "project_id": project_id,
+                "user_id": user_id,
+                "research_question": user_query or config.get("processing_method", "自动研究问题"),
+                "processing_method": config.get("processing_method", "standard"),
+            }
+        if tool_name == "query_knowledge":
+            return {
+                "project_id": project_id,
+                "question": user_query or "项目当前核心问题是什么？",
+                "use_main_experience": True,
+            }
+        if tool_name == "task_statistics":
+            return {
+                "project_id": project_id,
+                "user_id": user_id,
+                "limit_recent": config.get("limit_recent", 5),
+            }
+        if tool_name == "get_project_status":
+            return {"project_id": project_id}
+        if tool_name == "create_project":
+            return {
+                "name": (context.get("project_name") or "自动研究项目"),
+                "field": context.get("research_field") or context.get("config", {}).get("field") or "科研",
+                "description": context.get("description") or f"自动生成的项目，来源问题: {user_query}",
+                "keywords": keywords or ["自动", "研究"],
+            }
 
-        return default_arguments.get(tool_name, {})
+        return {}
 
     async def _integrate_results(self, execution_results: List[Dict[str, Any]], user_query: str) -> Dict[str, Any]:
         """整合和优化工具执行结果"""

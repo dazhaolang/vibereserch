@@ -258,6 +258,8 @@ class IntelligentInteractionEngine:
         additional_context: Dict = None
     ) -> Dict:
         """创建智能交互会话"""
+        additional_context = additional_context or {}
+
         try:
             # 创建新会话
             session = InteractionSession(
@@ -279,14 +281,14 @@ class IntelligentInteractionEngine:
             # 分析用户意图
             intent = await self.analyze_user_intent(
                 user_input,
-                additional_context or {},
+                additional_context,
                 project
             )
 
             # 如果需要澄清，生成澄清卡片
             if intent.clarification_needed:
                 clarification_options = await self.generate_clarification_options(
-                    intent, additional_context or {}, context_type
+                    intent, additional_context, context_type
                 )
 
                 # 创建澄清卡片
@@ -301,11 +303,13 @@ class IntelligentInteractionEngine:
                     ),
                     ai_generation_prompt=user_input,
                     generation_confidence=intent.intent_confidence,
-                    context=additional_context or {}
+                    context=additional_context
                 )
                 self.db.add(clarification_card)
 
                 self.db.commit()
+
+                self._schedule_auto_timeout(session.session_id, clarification_card)
 
                 return {
                     "success": True,
@@ -526,6 +530,38 @@ class IntelligentInteractionEngine:
                 "workflow_result": {"message": "使用推荐选项开始处理..."}
             }
 
+    def _schedule_auto_timeout(self, session_id: str, card: ClarificationCard) -> None:
+        """在超时阈值到达时自动选择推荐选项"""
+        try:
+            from app.tasks.celery_tasks import auto_select_clarification_card
+        except Exception as scheduling_error:
+            logger.warning(f"自动澄清超时任务调度失败: {scheduling_error}")
+            return
+
+        timeout_seconds = max(0, card.timeout_seconds or 0)
+        if timeout_seconds <= 0:
+            return
+
+        has_option = bool(card.recommended_option_id)
+        if not has_option:
+            for option in card.options or []:
+                if option.get("option_id"):
+                    has_option = True
+                    break
+        if not has_option:
+            logger.info(
+                "跳过自动超时处理，澄清卡片缺少可用选项 | session=%s card=%s",
+                session_id,
+                card.card_id,
+            )
+            return
+
+        countdown = max(1, timeout_seconds)
+        auto_select_clarification_card.apply_async(
+            args=[session_id, card.card_id],
+            countdown=countdown,
+        )
+
     async def _execute_direct_workflow(self, session: InteractionSession, intent: IntentAnalysis, user_input: str) -> Dict:
         """直接执行工作流（不需要澄清的情况）"""
         return {
@@ -544,3 +580,88 @@ class IntelligentInteractionEngine:
         except:
             pass
         return None
+
+    async def analyze_query(
+        self,
+        query: str,
+        project_id: int,
+        context: Dict = None
+    ) -> Dict[str, Any]:
+        """
+        分析查询问题，进行拆解和模式推荐
+        用于替换前端mock数据
+        """
+        try:
+            # 获取项目信息
+            project = self.db.query(Project).filter(Project.id == project_id).first()
+            if not project:
+                raise ValueError(f"项目不存在: {project_id}")
+
+            # 构建问题分析提示词
+            analysis_prompt = f"""
+作为一个智能研究助手，请分析以下研究查询：
+
+查询问题: {query}
+项目背景: {project.title}
+项目描述: {project.description or "无描述"}
+
+请提供以下分析结果（以JSON格式返回）：
+1. recommended_mode: 推荐的研究模式 (rag|deep|auto)
+   - rag: 适合基于现有文献库的快速查询
+   - deep: 适合需要深度分析和经验迭代的复杂问题
+   - auto: 适合需要自动搜集文献和全流程处理的新问题
+2. sub_questions: 将主问题拆解成的3-5个子问题
+3. complexity_score: 问题复杂度评分 (0-1)
+4. estimated_resources: 预估资源需求 {{time: "预估时间", tokens: "预估token消耗", literature_count: "建议文献数量"}}
+5. reasoning: 推荐理由和分析思路
+6. suggested_keywords: 建议的搜索关键词 (3-8个)
+7. processing_suggestions: 处理建议配置
+
+返回标准JSON格式，不要包含任何其他内容。
+"""
+
+            # 使用AI服务进行分析
+            analysis_result = await self.ai_service.generate_response(
+                prompt=analysis_prompt,
+                temperature=0.3,
+                max_tokens=1500
+            )
+
+            # 解析JSON结果
+            try:
+                parsed_result = json.loads(analysis_result)
+            except json.JSONDecodeError:
+                # 如果解析失败，返回默认值
+                parsed_result = {
+                    "recommended_mode": "rag",
+                    "sub_questions": [query],
+                    "complexity_score": 0.5,
+                    "estimated_resources": {"time": "5-10分钟", "tokens": "1000-3000", "literature_count": "5-10"},
+                    "reasoning": "AI分析结果解析失败，返回默认推荐",
+                    "suggested_keywords": [],
+                    "processing_suggestions": {}
+                }
+
+            # 确保必要字段存在
+            parsed_result.setdefault("recommended_mode", "rag")
+            parsed_result.setdefault("sub_questions", [query])
+            parsed_result.setdefault("complexity_score", 0.5)
+            parsed_result.setdefault("estimated_resources", {})
+            parsed_result.setdefault("reasoning", "")
+            parsed_result.setdefault("suggested_keywords", [])
+            parsed_result.setdefault("processing_suggestions", {})
+
+            return parsed_result
+
+        except Exception as e:
+            logger.error(f"查询分析失败: {e}")
+            # 返回默认分析结果
+            return {
+                "recommended_mode": "rag",
+                "sub_questions": [query],
+                "complexity_score": 0.5,
+                "estimated_resources": {"time": "未知", "tokens": "未知", "literature_count": "5-10"},
+                "reasoning": f"分析过程中出现错误: {str(e)}",
+                "suggested_keywords": [],
+                "processing_suggestions": {}
+            }

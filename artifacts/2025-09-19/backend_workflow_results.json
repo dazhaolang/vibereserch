@@ -1,0 +1,113 @@
+{
+  "base_url": "http://localhost:8000",
+  "email": "regression_test@example.com",
+  "results": [
+    {
+      "name": "login",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": {
+        "email": "regression_test@example.com"
+      }
+    },
+    {
+      "name": "user_profile",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "project_create",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": {
+        "project_id": 12
+      }
+    },
+    {
+      "name": "project_stats",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "project_tasks",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "tasks_list",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "tasks_overview",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "tasks_statistics",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "tasks_performance",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "performance_status",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "performance_dashboard",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "performance_recommend",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "literature_methods",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    },
+    {
+      "name": "project_cleanup",
+      "ok": true,
+      "status_code": 200,
+      "detail": "",
+      "payload": null
+    }
+  ],
+  "summary": {
+    "PASS": 14,
+    "FAIL": 0
+  },
+  "generated_at": 1758292107
+}

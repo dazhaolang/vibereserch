@@ -27,8 +27,10 @@ from app.services.cost_control_manager import (
     recommend_cost_optimal_processing
 )
 from app.services.performance_monitor import (
-    performance_monitor, start_performance_monitoring,
-    stop_performance_monitoring, get_performance_dashboard
+    performance_monitor,
+    start_performance_monitoring,
+    stop_performance_monitoring,
+    get_performance_dashboard as fetch_performance_dashboard,
 )
 
 router = APIRouter()
@@ -363,7 +365,7 @@ async def get_performance_dashboard(
     """
     try:
         # 获取系统性能数据
-        dashboard_data = get_performance_dashboard()
+        dashboard_data = fetch_performance_dashboard()
 
         # 获取用户相关的成本分析
         cost_optimizer = create_cost_optimizer()
@@ -693,7 +695,7 @@ async def _analyze_project_optimization_opportunities(project: Project, db: Sess
 
 async def _get_system_based_recommendations() -> List[str]:
     """基于系统状态获取推荐"""
-    dashboard_data = get_performance_dashboard()
+    dashboard_data = fetch_performance_dashboard()
     recommendations = []
 
     current_metrics = dashboard_data.get("current_metrics", {})
@@ -721,7 +723,7 @@ async def get_performance_status(
     """获取性能状态 - 为前端兼容性添加"""
     try:
         # 获取性能仪表板数据
-        dashboard_data = get_performance_dashboard()
+        dashboard_data = fetch_performance_dashboard()
 
         # 获取系统健康状态
         health_status = performance_monitor.get_system_health()
